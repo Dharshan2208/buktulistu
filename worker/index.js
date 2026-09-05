@@ -2,12 +2,14 @@ export default {
   fetch(request, env) {
     const url = new URL(request.url);
 
-    if (url.pathname.startsWith("/api/")) {
+    if (url.pathname == "/api/health") {
       return Response.json({
-        name: "Cloudflare",
+        status: "ok",
       });
     }
 
-		return new Response(null, { status: 404 });
+    return new Response("Not Found", {
+      status: 404,
+    });
   },
-}
+};
