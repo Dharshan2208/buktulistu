@@ -1,10 +1,22 @@
 import { useEffect, useState } from "react";
-import { getItems } from "./api/bucketApi";
+import { createItem, getItems } from "./api/bucketApi";
+
+const EMPTY_FORM = {
+  title: "",
+  description: "",
+  category: "general",
+  priority: "medium",
+  target_date: "",
+};
 
 function App() {
   const [items, setItems] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [loadError, setLoadError] = useState(null);
+
+  const [form, setForm] = useState(EMPTY_FORM);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formError, setFormError] = useState(null);
 
   useEffect(() => {
     let ignore = false;
@@ -18,7 +30,7 @@ function App() {
         }
       } catch (err) {
         if (!ignore) {
-          setError(err.message);
+          setLoadError(err.message);
         }
       } finally {
         if (!ignore) {
@@ -34,23 +46,130 @@ function App() {
     };
   }, []);
 
+  function handleChange(event) {
+    const { name, value } = event.target;
+
+    setForm((currentForm) => ({
+      ...currentForm,
+      [name]: value,
+    }));
+  }
+
+  async function handleSubmit(event) {
+    event.preventDefault();
+
+    setIsSubmitting(true);
+    setFormError(null);
+
+    try {
+      const newItem = await createItem({
+        title: form.title,
+        description: form.description || null,
+        category: form.category,
+        priority: form.priority,
+        target_date: form.target_date || null,
+      });
+
+      setItems((currentItems) => [newItem, ...currentItems]);
+      setForm(EMPTY_FORM);
+    } catch (err) {
+      setFormError(err.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
   return (
     <main>
-      <h1>Buktu Listu</h1>
-      <p>Build the life you want to remember</p>
+      <header>
+        <h1>Buktu Listu</h1>
+        <p>Build the life you want to remember</p>
+      </header>
+
+      <section>
+        <h2>Add a bucket-list item</h2>
+
+        <form onSubmit={handleSubmit}>
+          <fieldset disabled={isSubmitting}>
+            <div>
+              <label htmlFor="title">Title</label>
+              <input
+                id="title"
+                name="title"
+                type="text"
+                value={form.title}
+                onChange={handleChange}
+                required
+              />
+            </div>
+
+            <div>
+              <label htmlFor="description">Description</label>
+              <textarea
+                id="description"
+                name="description"
+                value={form.description}
+                onChange={handleChange}
+              />
+            </div>
+
+            <div>
+              <label htmlFor="category">Category</label>
+              <input
+                id="category"
+                name="category"
+                type="text"
+                value={form.category}
+                onChange={handleChange}
+              />
+            </div>
+
+            <div>
+              <label htmlFor="priority">Priority</label>
+              <select
+                id="priority"
+                name="priority"
+                value={form.priority}
+                onChange={handleChange}
+              >
+                <option value="low">Low</option>
+                <option value="medium">Medium</option>
+                <option value="high">High</option>
+              </select>
+            </div>
+
+            <div>
+              <label htmlFor="target_date">Target date</label>
+              <input
+                id="target_date"
+                name="target_date"
+                type="date"
+                value={form.target_date}
+                onChange={handleChange}
+              />
+            </div>
+
+            <button type="submit">
+              {isSubmitting ? "Adding..." : "Add item"}
+            </button>
+          </fieldset>
+        </form>
+
+        {formError && <p>Could not add item: {formError}</p>}
+      </section>
 
       <section>
         <h2>My bucket list</h2>
 
         {isLoading && <p>Loading items...</p>}
 
-        {error && <p>Something went wrong: {error}</p>}
+        {loadError && <p>Something went wrong: {loadError}</p>}
 
-        {!isLoading && !error && items.length === 0 && (
+        {!isLoading && !loadError && items.length === 0 && (
           <p>Your bucket list is empty.</p>
         )}
 
-        {!isLoading && !error && items.length > 0 && (
+        {!isLoading && !loadError && items.length > 0 && (
           <ul>
             {items.map((item) => (
               <li key={item.id}>
