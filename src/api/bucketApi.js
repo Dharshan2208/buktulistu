@@ -23,3 +23,29 @@ export async function createItem(item) {
 
   return response.json();
 }
+
+export async function deleteItem(id) {
+  const response = await fetch(`/api/items/${id}`, {
+    method: "DELETE",
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to delete bucket item");
+  }
+}
+
+export async function updateItem(id, updates) {
+  const response = await fetch(`/api/items/${id}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(updates),
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to update bucket item");
+  }
+
+  return response.json();
+}

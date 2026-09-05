@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { createItem, getItems } from "./api/bucketApi";
+import { createItem, deleteItem, getItems, updateItem } from "./api/bucketApi";
 
 const EMPTY_FORM = {
   title: "",
@@ -17,6 +17,11 @@ function App() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState(null);
+
+  const [editingId, setEditingId] = useState(null);
+  const [editForm, setEditForm] = useState(EMPTY_FORM);
+  const [busyItemId, setBusyItemId] = useState(null);
+  const [actionError, setActionError] = useState(null);
 
   useEffect(() => {
     let ignore = false;
@@ -79,6 +84,106 @@ function App() {
     }
   }
 
+  async function handleDelete(item) {
+    const confirmed = window.confirm(
+      `Delete "${item.title}" from your bucket list?`,
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setBusyItemId(item.id);
+    setActionError(null);
+
+    try {
+      await deleteItem(item.id);
+
+      setItems((currentItems) =>
+        currentItems.filter((currentItem) => currentItem.id !== item.id),
+      );
+    } catch (err) {
+      setActionError(err.message);
+    } finally {
+      setBusyItemId(null);
+    }
+  }
+
+  async function handleToggleCompleted(item) {
+    setBusyItemId(item.id);
+    setActionError(null);
+
+    try {
+      const updatedItem = await updateItem(item.id, {
+        completed: !(item.completed),
+      });
+
+      setItems((currentItems) =>
+        currentItems.map((currentItem) =>
+          currentItem.id === item.id ? updatedItem : currentItem,
+        ),
+      );
+    } catch (err) {
+      setActionError(err.message);
+    } finally {
+      setBusyItemId(null);
+    }
+  }
+
+  function startEditing(item) {
+    setEditingId(item.id);
+    setActionError(null);
+
+    setEditForm({
+      title: item.title,
+      description: item.description ?? "",
+      category: item.category,
+      priority: item.priority,
+      target_date: item.target_date ?? "",
+    });
+  }
+
+  function cancelEditing() {
+    setEditingId(null);
+    setEditForm(EMPTY_FORM);
+  }
+
+  function handleEditChange(event) {
+    const { name, value } = event.target;
+
+    setEditForm((currentForm) => ({
+      ...currentForm,
+      [name]: value,
+    }));
+  }
+
+  async function handleEditSubmit(event, id) {
+    event.preventDefault();
+
+    setBusyItemId(id);
+    setActionError(null);
+
+    try {
+      const updatedItem = await updateItem(id, {
+        title: editForm.title,
+        description: editForm.description || null,
+        category: editForm.category,
+        priority: editForm.priority,
+        target_date: editForm.target_date || null,
+      });
+
+      setItems((currentItems) =>
+        currentItems.map((item) => (item.id === id ? updatedItem : item)),
+      );
+
+      cancelEditing();
+    } catch (err) {
+      setActionError(err.message);
+    } finally {
+      setBusyItemId(null);
+    }
+  }
+
   return (
     <main>
       <header>
@@ -121,6 +226,7 @@ function App() {
                 type="text"
                 value={form.category}
                 onChange={handleChange}
+                required
               />
             </div>
 
@@ -162,8 +268,8 @@ function App() {
         <h2>My bucket list</h2>
 
         {isLoading && <p>Loading items...</p>}
-
         {loadError && <p>Something went wrong: {loadError}</p>}
+        {actionError && <p>Action failed: {actionError}</p>}
 
         {!isLoading && !loadError && items.length === 0 && (
           <p>Your bucket list is empty.</p>
@@ -173,15 +279,130 @@ function App() {
           <ul>
             {items.map((item) => (
               <li key={item.id}>
-                <h3>{item.title}</h3>
+                {editingId === item.id ? (
+                  <form onSubmit={(event) => handleEditSubmit(event, item.id)}>
+                    <fieldset disabled={busyItemId !== null}>
+                      <div>
+                        <label htmlFor={`edit-title-${item.id}`}>Title</label>
+                        <input
+                          id={`edit-title-${item.id}`}
+                          name="title"
+                          type="text"
+                          value={editForm.title}
+                          onChange={handleEditChange}
+                          required
+                        />
+                      </div>
 
-                {item.description && <p>{item.description}</p>}
+                      <div>
+                        <label htmlFor={`edit-description-${item.id}`}>
+                          Description
+                        </label>
+                        <textarea
+                          id={`edit-description-${item.id}`}
+                          name="description"
+                          value={editForm.description}
+                          onChange={handleEditChange}
+                        />
+                      </div>
 
-                <p>Category: {item.category}</p>
-                <p>Priority: {item.priority}</p>
-                <p>Status: {item.completed ? "Completed" : "Not completed"}</p>
+                      <div>
+                        <label htmlFor={`edit-category-${item.id}`}>
+                          Category
+                        </label>
+                        <input
+                          id={`edit-category-${item.id}`}
+                          name="category"
+                          type="text"
+                          value={editForm.category}
+                          onChange={handleEditChange}
+                          required
+                        />
+                      </div>
 
-                {item.target_date && <p>Target date: {item.target_date}</p>}
+                      <div>
+                        <label htmlFor={`edit-priority-${item.id}`}>
+                          Priority
+                        </label>
+                        <select
+                          id={`edit-priority-${item.id}`}
+                          name="priority"
+                          value={editForm.priority}
+                          onChange={handleEditChange}
+                        >
+                          <option value="low">Low</option>
+                          <option value="medium">Medium</option>
+                          <option value="high">High</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label htmlFor={`edit-date-${item.id}`}>
+                          Target date
+                        </label>
+                        <input
+                          id={`edit-date-${item.id}`}
+                          name="target_date"
+                          type="date"
+                          value={editForm.target_date}
+                          onChange={handleEditChange}
+                        />
+                      </div>
+
+                      <button type="submit">
+                        {busyItemId === item.id ? "Saving..." : "Save changes"}
+                      </button>
+
+                      <button type="button" onClick={cancelEditing}>
+                        Cancel
+                      </button>
+                    </fieldset>
+                  </form>
+                ) : (
+                  <>
+                    <h3>{item.title}</h3>
+
+                    {item.description && <p>{item.description}</p>}
+
+                    <p>Category: {item.category}</p>
+                    <p>Priority: {item.priority}</p>
+                    <p>
+                      Status: {item.completed ? "Completed" : "Not completed"}
+                    </p>
+
+                    {item.target_date && <p>Target date: {item.target_date}</p>}
+
+                    <div>
+                      <button
+                        type="button"
+                        disabled={busyItemId !== null}
+                        onClick={() => handleToggleCompleted(item)}
+                      >
+                        {busyItemId === item.id
+                          ? "Saving..."
+                          : item.completed
+                            ? "Mark incomplete"
+                            : "Mark complete"}
+                      </button>
+
+                      <button
+                        type="button"
+                        disabled={busyItemId !== null}
+                        onClick={() => startEditing(item)}
+                      >
+                        Edit
+                      </button>
+
+                      <button
+                        type="button"
+                        disabled={busyItemId !== null}
+                        onClick={() => handleDelete(item)}
+                      >
+                        {busyItemId === item.id ? "Working..." : "Delete"}
+                      </button>
+                    </div>
+                  </>
+                )}
               </li>
             ))}
           </ul>
