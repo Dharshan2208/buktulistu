@@ -3,6 +3,7 @@ import { createItem, deleteItem, getItems, updateItem } from "./api/bucketApi";
 import BucketFilters from "./components/BucketFilters";
 import BucketItemForm from "./components/BucketItemForm";
 import BucketList from "./components/BucketList";
+import BucketStats from "./components/BucketStats";
 
 const PRIORITY_RANK = {
   low: 1,
@@ -155,6 +156,8 @@ function App() {
         <h1>Buktu Listu</h1>
         <p>Build the life you want to remember</p>
       </header>
+
+      {!isLoading && !loadError && <BucketStats items={items} />}
 
       <section>
         <h2>Add a bucket-list item</h2>
