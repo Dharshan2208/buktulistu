@@ -12,7 +12,7 @@ function BucketItem({ item, onUpdate, onDelete }) {
 
     try {
       await onUpdate(item.id, {
-        completed: !Boolean(item.completed),
+        completed: !item.completed,
       });
     } catch (err) {
       setActionError(

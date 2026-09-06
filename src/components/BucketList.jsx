@@ -1,6 +1,13 @@
 import BucketItem from "./BucketItem";
 
-function BucketList({ items, isLoading, error, onUpdate, onDelete }) {
+function BucketList({
+  items,
+  isLoading,
+  error,
+  emptyMessage,
+  onUpdate,
+  onDelete,
+}) {
   if (isLoading) {
     return <p>Loading items...</p>;
   }
@@ -10,7 +17,7 @@ function BucketList({ items, isLoading, error, onUpdate, onDelete }) {
   }
 
   if (items.length === 0) {
-    return <p>Your bucket list is empty.</p>;
+    return <p>{emptyMessage}</p>;
   }
 
   return (
