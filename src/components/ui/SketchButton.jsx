@@ -66,6 +66,7 @@ function SketchButton({
           hachureAngle: -10,
           roughness: 1.2,
           bowing: 0.75,
+          disableMultiStroke: true,
         },
       );
 

@@ -60,13 +60,14 @@ function SketchCard({
         roundedRectanglePath(3, 3, width - 6, height - 6, 18),
         {
           seed,
-          stroke: "#292b28",
-          strokeWidth: 1.35,
+          stroke: "#918a7b",
+          strokeWidth: 1.1,
           strokeLineDash: dashed ? [7, 6] : undefined,
           fill: CARD_COLORS[variant] ?? variant,
           fillStyle: "solid",
-          roughness: 1.05,
-          bowing: 0.65,
+          roughness: 0.8,
+          bowing: 0.45,
+          disableMultiStroke: true,
         },
       );
 

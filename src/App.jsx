@@ -71,6 +71,16 @@ function App() {
     );
   }, [items]);
 
+  const statusCounts = useMemo(() => {
+    const completed = items.filter((item) => item.completed).length;
+
+    return {
+      all: items.length,
+      active: items.length - completed,
+      completed,
+    };
+  }, [items]);
+
   const visibleItems = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLowerCase();
     const nextItems = items.filter((item) => {
@@ -152,27 +162,42 @@ function App() {
           <span>Buktu Listu</span>
         </a>
 
-        <SketchButton
-          className="header-add"
-          variant="yellow"
-          onClick={() => setIsCreateOpen(true)}
-        >
-          <span aria-hidden="true">＋</span> Add item
-        </SketchButton>
+        <div className="header-actions">
+          <nav className="site-nav" aria-label="Primary navigation">
+            <a href="#progress">Progress</a>
+            <a href="#list">My list</a>
+          </nav>
+
+          <SketchButton
+            className="header-add"
+            variant="yellow"
+            onClick={() => setIsCreateOpen(true)}
+          >
+            <span aria-hidden="true">＋</span> Add item
+          </SketchButton>
+        </div>
       </header>
 
       <main id="top" className="app-main">
         <section className="intro" aria-labelledby="page-heading">
           <p className="eyebrow">My lifetime list</p>
           <h1 id="page-heading">Things I want to do.</h1>
-          <p>
-            Keep track of the experiences, places, and goals that matter to you.
+          <p className="intro__lead">
+            A thoughtful home for meaningful places, experiences, and goals.
           </p>
         </section>
 
-        {!isLoading && !loadError && <BucketStats items={items} />}
+        {!isLoading && !loadError && items.length > 0 && (
+          <section id="progress" aria-label="Bucket-list progress">
+            <BucketStats items={items} />
+          </section>
+        )}
 
-        <section className="list-section" aria-labelledby="list-heading">
+        <section
+          id="list"
+          className="list-section"
+          aria-labelledby="list-heading"
+        >
           <div className="section-heading">
             <div>
               <p className="eyebrow">The list</p>
@@ -190,6 +215,7 @@ function App() {
             sortBy={sortBy}
             onSortChange={setSortBy}
             categories={categories}
+            statusCounts={statusCounts}
             visibleCount={visibleItems.length}
             totalCount={items.length}
             onClear={clearFilters}

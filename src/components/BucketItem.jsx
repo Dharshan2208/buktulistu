@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { formatCategory } from "../categories";
 import BucketItemForm from "./BucketItemForm";
 import Modal from "./ui/Modal";
 import SketchButton from "./ui/SketchButton";
@@ -69,7 +70,7 @@ function BucketItem({ item, onUpdate, onDelete }) {
             <span aria-hidden="true">{item.completed ? "✓" : ""}</span>
           </button>
 
-          <span className="category-tag">{item.category}</span>
+          <span className="category-tag">{formatCategory(item.category)}</span>
         </div>
 
         <div className="bucket-card__body">
@@ -86,7 +87,8 @@ function BucketItem({ item, onUpdate, onDelete }) {
               disabled={isBusy}
               onClick={() => setIsEditing(true)}
             >
-              ✎
+              <span aria-hidden="true">✎</span>
+              <span>Edit</span>
             </button>
             <button
               type="button"
@@ -95,7 +97,8 @@ function BucketItem({ item, onUpdate, onDelete }) {
               disabled={isBusy}
               onClick={() => setIsDeleteOpen(true)}
             >
-              ⌫
+              <span aria-hidden="true">⌫</span>
+              <span>Delete</span>
             </button>
           </div>
         </div>
