@@ -456,8 +456,7 @@ h3,
 
 .bucket-card__topline,
 .bucket-card__footer,
-.bucket-card__actions,
-.bucket-card__date {
+.bucket-card__actions {
   display: flex;
   align-items: center;
 }
@@ -490,8 +489,7 @@ h3,
   background: #b9e8c9;
 }
 
-.category-tag,
-.priority-tag {
+.category-tag {
   display: inline-flex;
   min-height: 27px;
   align-items: center;
@@ -505,29 +503,10 @@ h3,
 
 .category-tag {
   overflow: hidden;
-  max-width: 54%;
+  max-width: calc(100% - 40px);
   background: #ede9df;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.priority-tag {
-  margin-left: auto;
-}
-
-.priority-tag--high {
-  background: #fee2e2;
-  color: #993d37;
-}
-
-.priority-tag--medium {
-  background: #fff0bb;
-  color: #745d0b;
-}
-
-.priority-tag--low {
-  background: #e4ebdf;
-  color: #496240;
 }
 
 .bucket-card__body {
@@ -562,16 +541,9 @@ h3,
 
 .bucket-card__footer {
   gap: 12px;
-  justify-content: space-between;
+  justify-content: flex-end;
   padding-top: 15px;
   border-top: 1px dashed #cfc9bc;
-}
-
-.bucket-card__date {
-  min-width: 0;
-  gap: 7px;
-  color: var(--muted);
-  font-size: 0.79rem;
 }
 
 .bucket-card__actions {
@@ -769,6 +741,44 @@ h3,
 .item-form select {
   min-height: 46px;
   padding: 10px 12px;
+}
+
+.category-select {
+  position: relative;
+}
+
+.category-select select {
+  appearance: none;
+  padding-right: 44px;
+  background:
+    linear-gradient(135deg, rgba(247, 209, 84, 0.28), transparent 60%),
+    rgba(255, 253, 247, 0.82);
+  font-weight: 700;
+}
+
+.category-select__arrow {
+  position: absolute;
+  top: 50%;
+  right: 13px;
+  display: grid;
+  width: 22px;
+  height: 22px;
+  place-items: center;
+  border: 1px solid rgba(130, 104, 19, 0.35);
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--accent-dark);
+  font-size: 0.9rem;
+  font-weight: 900;
+  line-height: 1;
+  pointer-events: none;
+  transform: translateY(-50%) rotate(-4deg);
+}
+
+.category-select select:focus {
+  background:
+    linear-gradient(135deg, rgba(247, 209, 84, 0.36), transparent 60%),
+    var(--paper);
 }
 
 .item-form textarea {

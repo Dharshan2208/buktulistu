@@ -1,3 +1,5 @@
+import { formatCategory } from "../categories";
+
 function BucketFilters({
   searchTerm,
   onSearchChange,
@@ -73,7 +75,7 @@ function BucketFilters({
               <option value="all">All categories</option>
               {categories.map((category) => (
                 <option key={category} value={category}>
-                  {category}
+                  {formatCategory(category)}
                 </option>
               ))}
             </select>
@@ -88,8 +90,6 @@ function BucketFilters({
               <option value="newest">Newest first</option>
               <option value="oldest">Oldest first</option>
               <option value="title">Title A–Z</option>
-              <option value="priority">Highest priority</option>
-              <option value="target-date">Nearest date</option>
             </select>
           </label>
 

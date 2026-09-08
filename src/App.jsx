@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { createItem, deleteItem, getItems, updateItem } from "./api/bucketApi";
+import { CATEGORY_OPTIONS } from "./categories";
 import BucketFilters from "./components/BucketFilters";
 import BucketItemForm from "./components/BucketItemForm";
 import BucketList from "./components/BucketList";
@@ -7,12 +8,6 @@ import BucketStats from "./components/BucketStats";
 import Modal from "./components/ui/Modal";
 import SketchButton from "./components/ui/SketchButton";
 import SketchToast from "./components/ui/SketchToast";
-
-const PRIORITY_RANK = {
-  low: 1,
-  medium: 2,
-  high: 3,
-};
 
 function App() {
   const [items, setItems] = useState([]);
@@ -66,7 +61,10 @@ function App() {
   }, [toast]);
 
   const categories = useMemo(() => {
-    const uniqueCategories = new Set(items.map((item) => item.category));
+    const uniqueCategories = new Set([
+      ...CATEGORY_OPTIONS.map((category) => category.value),
+      ...items.map((item) => item.category),
+    ]);
 
     return [...uniqueCategories].sort((first, second) =>
       first.localeCompare(second),
@@ -100,17 +98,6 @@ function App() {
         return first.title.localeCompare(second.title, undefined, {
           sensitivity: "base",
         });
-      }
-
-      if (sortBy === "priority") {
-        return PRIORITY_RANK[second.priority] - PRIORITY_RANK[first.priority];
-      }
-
-      if (sortBy === "target-date") {
-        if (!first.target_date && !second.target_date) return 0;
-        if (!first.target_date) return 1;
-        if (!second.target_date) return -1;
-        return first.target_date.localeCompare(second.target_date);
       }
 
       return second.created_at.localeCompare(first.created_at);

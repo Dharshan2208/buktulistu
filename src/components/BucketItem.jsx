@@ -4,14 +4,6 @@ import Modal from "./ui/Modal";
 import SketchButton from "./ui/SketchButton";
 import SketchCard from "./ui/SketchCard";
 
-function formatTargetDate(targetDate) {
-  return new Intl.DateTimeFormat(undefined, {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  }).format(new Date(`${targetDate}T00:00:00`));
-}
-
 function BucketItem({ item, onUpdate, onDelete }) {
   const [isEditing, setIsEditing] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
@@ -78,10 +70,6 @@ function BucketItem({ item, onUpdate, onDelete }) {
           </button>
 
           <span className="category-tag">{item.category}</span>
-
-          <span className={`priority-tag priority-tag--${item.priority}`}>
-            {item.priority}
-          </span>
         </div>
 
         <div className="bucket-card__body">
@@ -90,17 +78,6 @@ function BucketItem({ item, onUpdate, onDelete }) {
         </div>
 
         <div className="bucket-card__footer">
-          <div className="bucket-card__date">
-            {item.target_date ? (
-              <>
-                <span aria-hidden="true">◷</span>
-                <span>{formatTargetDate(item.target_date)}</span>
-              </>
-            ) : (
-              <span>No date set</span>
-            )}
-          </div>
-
           <div className="bucket-card__actions">
             <button
               type="button"
@@ -142,8 +119,6 @@ function BucketItem({ item, onUpdate, onDelete }) {
             title: item.title,
             description: item.description ?? "",
             category: item.category,
-            priority: item.priority,
-            target_date: item.target_date ?? "",
           }}
           onSubmit={handleEdit}
           onCancel={() => setIsEditing(false)}

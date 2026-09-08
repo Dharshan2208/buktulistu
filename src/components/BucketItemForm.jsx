@@ -1,12 +1,11 @@
 import { useState } from "react";
+import { CATEGORY_OPTIONS } from "../categories";
 import SketchButton from "./ui/SketchButton";
 
 const EMPTY_VALUES = {
   title: "",
   description: "",
   category: "general",
-  priority: "medium",
-  target_date: "",
 };
 
 function BucketItemForm({
@@ -44,8 +43,6 @@ function BucketItemForm({
         title: form.title,
         description: form.description || null,
         category: form.category,
-        priority: form.priority,
-        target_date: form.target_date || null,
       });
 
       if (resetAfterSubmit) {
@@ -88,42 +85,25 @@ function BucketItemForm({
           />
         </div>
 
-        <div className="form-field">
-          <label htmlFor={`${idPrefix}-category`}>Category</label>
-          <input
-            id={`${idPrefix}-category`}
-            name="category"
-            type="text"
-            value={form.category}
-            onChange={handleChange}
-            placeholder="Travel,Skills,Career,Finance,Health,Fitness,Adventure,General"
-            required
-          />
-        </div>
-
-        <div className="form-field">
-          <label htmlFor={`${idPrefix}-priority`}>Priority</label>
-          <select
-            id={`${idPrefix}-priority`}
-            name="priority"
-            value={form.priority}
-            onChange={handleChange}
-          >
-            <option value="low">Low</option>
-            <option value="medium">Medium</option>
-            <option value="high">High</option>
-          </select>
-        </div>
-
         <div className="form-field form-field--wide">
-          <label htmlFor={`${idPrefix}-target-date`}>Target date</label>
-          <input
-            id={`${idPrefix}-target-date`}
-            name="target_date"
-            type="date"
-            value={form.target_date}
-            onChange={handleChange}
-          />
+          <label htmlFor={`${idPrefix}-category`}>Category</label>
+          <div className="category-select">
+            <select
+              id={`${idPrefix}-category`}
+              name="category"
+              value={form.category}
+              onChange={handleChange}
+            >
+              {CATEGORY_OPTIONS.map((category) => (
+                <option key={category.value} value={category.value}>
+                  {category.label}
+                </option>
+              ))}
+            </select>
+            <span className="category-select__arrow" aria-hidden="true">
+              ▾
+            </span>
+          </div>
         </div>
       </fieldset>
 
