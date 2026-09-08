@@ -8,6 +8,13 @@ const BUTTON_COLORS = {
   red: "#fecaca",
 };
 
+const DARK_BUTTON_COLORS = {
+  yellow: "#d5ad42",
+  green: "#39744e",
+  paper: "#292b25",
+  red: "#7e3f3b",
+};
+
 function roundedRectanglePath(x, y, width, height, radius) {
   return `
     M ${x + radius} ${y}
@@ -54,18 +61,20 @@ function SketchButton({
       svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
 
       const sketch = rough.svg(svg);
+      const isDark = document.documentElement.dataset.theme === "dark";
+      const colors = isDark ? DARK_BUTTON_COLORS : BUTTON_COLORS;
       const shape = sketch.path(
         roundedRectanglePath(2.5, 2.5, width - 5, height - 5, 11),
         {
           seed: variant === "green" ? 150 : variant === "red" ? 260 : 50,
-          stroke: "#20231f",
-          strokeWidth: 1.45,
-          fill: BUTTON_COLORS[variant] ?? variant,
-          fillStyle: "hachure",
+          stroke: isDark ? "#f0d77d" : "#20231f",
+          strokeWidth: isDark ? 1.15 : 1.45,
+          fill: colors[variant] ?? variant,
+          fillStyle: isDark ? "solid" : "hachure",
           hachureGap: 4.5,
           hachureAngle: -10,
-          roughness: 1.2,
-          bowing: 0.75,
+          roughness: isDark ? 0.65 : 1.2,
+          bowing: isDark ? 0.4 : 0.75,
           disableMultiStroke: true,
         },
       );
@@ -78,13 +87,22 @@ function SketchButton({
     const observer = new ResizeObserver(drawButton);
     observer.observe(button);
 
-    return () => observer.disconnect();
+    const themeObserver = new MutationObserver(drawButton);
+    themeObserver.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["data-theme"],
+    });
+
+    return () => {
+      observer.disconnect();
+      themeObserver.disconnect();
+    };
   }, [variant]);
 
   return (
     <button
       ref={buttonRef}
-      className={`sketch-button ${className}`.trim()}
+      className={`sketch-button sketch-button--${variant} ${className}`.trim()}
       type={type}
       disabled={disabled}
       onClick={onClick}

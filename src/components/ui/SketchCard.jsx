@@ -9,6 +9,14 @@ const CARD_COLORS = {
   gray: "#f3f4f6",
 };
 
+const DARK_CARD_COLORS = {
+  paper: "#242620",
+  yellow: "#3b341f",
+  green: "#203b2b",
+  blue: "#202f3d",
+  gray: "#2c2e29",
+};
+
 function roundedRectanglePath(x, y, width, height, radius) {
   const corner = Math.min(radius, width / 2, height / 2);
 
@@ -56,14 +64,16 @@ function SketchCard({
       svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
 
       const sketch = rough.svg(svg);
+      const isDark = document.documentElement.dataset.theme === "dark";
+      const colors = isDark ? DARK_CARD_COLORS : CARD_COLORS;
       const shape = sketch.path(
         roundedRectanglePath(3, 3, width - 6, height - 6, 18),
         {
           seed,
-          stroke: "#918a7b",
+          stroke: isDark ? "#62675d" : "#918a7b",
           strokeWidth: 1.1,
           strokeLineDash: dashed ? [7, 6] : undefined,
-          fill: CARD_COLORS[variant] ?? variant,
+          fill: colors[variant] ?? variant,
           fillStyle: "solid",
           roughness: 0.8,
           bowing: 0.45,
@@ -79,7 +89,16 @@ function SketchCard({
     const observer = new ResizeObserver(drawCard);
     observer.observe(wrapper);
 
-    return () => observer.disconnect();
+    const themeObserver = new MutationObserver(drawCard);
+    themeObserver.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["data-theme"],
+    });
+
+    return () => {
+      observer.disconnect();
+      themeObserver.disconnect();
+    };
   }, [dashed, seed, variant]);
 
   return (

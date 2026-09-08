@@ -71,14 +71,7 @@ function BucketItem({ item, onUpdate, onDelete }) {
           </button>
 
           <span className="category-tag">{formatCategory(item.category)}</span>
-        </div>
 
-        <div className="bucket-card__body">
-          <h3>{item.title}</h3>
-          {item.description && <p>{item.description}</p>}
-        </div>
-
-        <div className="bucket-card__footer">
           <div className="bucket-card__actions">
             <button
               type="button"
@@ -87,8 +80,10 @@ function BucketItem({ item, onUpdate, onDelete }) {
               disabled={isBusy}
               onClick={() => setIsEditing(true)}
             >
-              <span aria-hidden="true">✎</span>
-              <span>Edit</span>
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M4 20h4l11-11-4-4L4 16v4Z" />
+                <path d="m13.5 6.5 4 4" />
+              </svg>
             </button>
             <button
               type="button"
@@ -97,10 +92,19 @@ function BucketItem({ item, onUpdate, onDelete }) {
               disabled={isBusy}
               onClick={() => setIsDeleteOpen(true)}
             >
-              <span aria-hidden="true">⌫</span>
-              <span>Delete</span>
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M4 7h16" />
+                <path d="M9 7V4h6v3" />
+                <path d="m6 7 1 13h10l1-13" />
+                <path d="M10 11v5M14 11v5" />
+              </svg>
             </button>
           </div>
+        </div>
+
+        <div className="bucket-card__body">
+          <h3>{item.title}</h3>
+          {item.description && <p>{item.description}</p>}
         </div>
 
         {actionError && (
