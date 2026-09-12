@@ -9,6 +9,15 @@ import Modal from "./components/ui/Modal";
 import SketchButton from "./components/ui/SketchButton";
 import SketchToast from "./components/ui/SketchToast";
 
+let nextTemporaryId = -1;
+
+function normalizeItem(item) {
+  return {
+    ...item,
+    completed: Boolean(item.completed),
+  };
+}
+
 function getInitialTheme() {
   const savedTheme = window.localStorage.getItem("buktu-theme");
 
@@ -136,33 +145,105 @@ function App() {
   }, [items, searchTerm, statusFilter, categoryFilter, sortBy]);
 
   async function handleCreate(values) {
-    const newItem = await createItem(values);
-    setItems((currentItems) => [newItem, ...currentItems]);
-    setIsCreateOpen(false);
-    setToast("Added to your bucket list");
+    const temporaryId = nextTemporaryId--;
+    const optimisticItem = {
+      id: temporaryId,
+      title: values.title,
+      description: values.description,
+      category: values.category,
+      priority: "medium",
+      target_date: null,
+      completed: false,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    setItems((currentItems) => [optimisticItem, ...currentItems]);
+
+    try {
+      const newItem = normalizeItem(await createItem(values));
+
+      setItems((currentItems) =>
+        currentItems.map((item) =>
+          item.id === temporaryId ? newItem : item,
+        ),
+      );
+      setIsCreateOpen(false);
+      setToast("Added to your bucket list");
+    } catch (error) {
+      setItems((currentItems) =>
+        currentItems.filter((item) => item.id !== temporaryId),
+      );
+      throw error;
+    }
   }
 
   async function handleUpdate(id, updates) {
-    const updatedItem = await updateItem(id, updates);
+    const previousItem = items.find((item) => item.id === id);
+
+    if (!previousItem) {
+      throw new Error("Bucket item not found locally");
+    }
+
+    const optimisticItem = {
+      ...previousItem,
+      ...updates,
+      completed:
+        updates.completed === undefined
+          ? previousItem.completed
+          : Boolean(updates.completed),
+      updated_at: new Date().toISOString(),
+    };
+
     setItems((currentItems) =>
-      currentItems.map((item) => (item.id === id ? updatedItem : item)),
+      currentItems.map((item) => (item.id === id ? optimisticItem : item)),
     );
 
-    if (Object.hasOwn(updates, "completed")) {
-      setToast(
-        updatedItem.completed
-          ? "Bucket list item completed — nicely done!"
-          : "Moved back to your list",
+    try {
+      const updatedItem = normalizeItem(await updateItem(id, updates));
+
+      setItems((currentItems) =>
+        currentItems.map((item) => (item.id === id ? updatedItem : item)),
       );
-    } else {
-      setToast("Changes saved");
+
+      if (Object.hasOwn(updates, "completed")) {
+        setToast(
+          updatedItem.completed
+            ? "Bucket list item completed — nicely done!"
+            : "Moved back to your list",
+        );
+      } else {
+        setToast("Changes saved");
+      }
+    } catch (error) {
+      setItems((currentItems) =>
+        currentItems.map((item) => (item.id === id ? previousItem : item)),
+      );
+      throw error;
     }
   }
 
   async function handleDelete(id) {
-    await deleteItem(id);
+    const deletedIndex = items.findIndex((item) => item.id === id);
+    const deletedItem = items[deletedIndex];
+
+    if (!deletedItem) {
+      return;
+    }
+
     setItems((currentItems) => currentItems.filter((item) => item.id !== id));
-    setToast("Item removed");
+
+    try {
+      await deleteItem(id);
+      setToast("Item removed");
+    } catch {
+      setItems((currentItems) => {
+        const restoredItems = [...currentItems];
+        restoredItems.splice(deletedIndex, 0, deletedItem);
+        return restoredItems;
+      });
+      setToast("Couldn't delete this item. Please try again.");
+    }
   }
 
   function clearFilters() {

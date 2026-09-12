@@ -11,19 +11,6 @@ function errorResponse(message, status) {
   );
 }
 
-async function findItemById(database, itemId) {
-  return database
-    .prepare(
-      `
-      SELECT *
-      FROM bucket_items
-      WHERE id = ?
-      `,
-    )
-    .bind(itemId)
-    .first();
-}
-
 export async function getItems(env) {
   const result = await env.bucketlist_db
     .prepare(
@@ -53,7 +40,7 @@ export async function createItem(request, env) {
     return errorResponse("Title is required", 400);
   }
 
-  const insertResult = await env.bucketlist_db
+  const newItem = await env.bucketlist_db
     .prepare(
       `
       INSERT INTO bucket_items (
@@ -64,6 +51,7 @@ export async function createItem(request, env) {
         target_date
       )
       VALUES (?, ?, ?, ?, ?)
+      RETURNING *
       `,
     )
     .bind(
@@ -73,12 +61,7 @@ export async function createItem(request, env) {
       body.priority ?? "medium",
       body.target_date ?? null,
     )
-    .run();
-
-  const newItem = await findItemById(
-    env.bucketlist_db,
-    insertResult.meta.last_row_id,
-  );
+    .first();
 
   return Response.json(newItem, {
     status: 201,
@@ -118,44 +101,44 @@ export async function updateItem(request, env, itemId) {
     return errorResponse("Request body must be a JSON object", 400);
   }
 
-  const currentItem = await findItemById(env.bucketlist_db, itemId);
+  const assignments = [];
+  const values = [];
 
-  if (!currentItem) {
-    return errorResponse("Bucket item not found", 404);
+  if (body.title !== undefined) {
+    const title = typeof body.title === "string" ? body.title.trim() : "";
+
+    if (!title) {
+      return errorResponse("Title is required", 400);
+    }
+
+    assignments.push("title = ?");
+    values.push(title);
   }
 
-  const title =
-    body.title === undefined
-      ? currentItem.title
-      : typeof body.title === "string"
-        ? body.title.trim()
-        : "";
+  if (body.category !== undefined) {
+    const category =
+      typeof body.category === "string" ? body.category.trim() : "";
 
-  if (!title) {
-    return errorResponse("Title is required", 400);
+    if (!category) {
+      return errorResponse("Category is required", 400);
+    }
+
+    assignments.push("category = ?");
+    values.push(category);
   }
 
-  const category =
-    body.category === undefined
-      ? currentItem.category
-      : typeof body.category === "string"
-        ? body.category.trim()
-        : "";
+  if (body.priority !== undefined) {
+    if (!VALID_PRIORITIES.includes(body.priority)) {
+      return errorResponse("Priority must be low, medium, or high", 400);
+    }
 
-  if (!category) {
-    return errorResponse("Category is required", 400);
+    assignments.push("priority = ?");
+    values.push(body.priority);
   }
-
-  const priority =
-    body.priority === undefined ? currentItem.priority : body.priority;
-
-  if (!VALID_PRIORITIES.includes(priority)) {
-    return errorResponse("Priority must be low, medium, or high", 400);
-  }
-
-  let completed = currentItem.completed;
 
   if (body.completed !== undefined) {
+    let completed;
+
     if (typeof body.completed === "boolean") {
       completed = body.completed ? 1 : 0;
     } else if (body.completed === 0 || body.completed === 1) {
@@ -163,37 +146,50 @@ export async function updateItem(request, env, itemId) {
     } else {
       return errorResponse("Completed must be a boolean", 400);
     }
+
+    assignments.push("completed = ?");
+    values.push(completed);
   }
 
-  const description =
-    body.description === undefined
-      ? currentItem.description
-      : body.description || null;
+  if (body.description !== undefined) {
+    if (body.description !== null && typeof body.description !== "string") {
+      return errorResponse("Description must be a string or null", 400);
+    }
 
-  const targetDate =
-    body.target_date === undefined
-      ? currentItem.target_date
-      : body.target_date || null;
+    assignments.push("description = ?");
+    values.push(body.description || null);
+  }
 
-  await env.bucketlist_db
+  if (body.target_date !== undefined) {
+    if (body.target_date !== null && typeof body.target_date !== "string") {
+      return errorResponse("Target date must be a string or null", 400);
+    }
+
+    assignments.push("target_date = ?");
+    values.push(body.target_date || null);
+  }
+
+  if (assignments.length === 0) {
+    return errorResponse("At least one field must be updated", 400);
+  }
+
+  const updatedItem = await env.bucketlist_db
     .prepare(
       `
       UPDATE bucket_items
       SET
-        title = ?,
-        description = ?,
-        category = ?,
-        priority = ?,
-        completed = ?,
-        target_date = ?,
+        ${assignments.join(", ")},
         updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
+      RETURNING *
       `,
     )
-    .bind(title, description, category, priority, completed, targetDate, itemId)
-    .run();
+    .bind(...values, itemId)
+    .first();
 
-  const updatedItem = await findItemById(env.bucketlist_db, itemId);
+  if (!updatedItem) {
+    return errorResponse("Bucket item not found", 404);
+  }
 
   return Response.json(updatedItem);
 }
