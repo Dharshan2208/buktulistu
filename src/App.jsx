@@ -149,7 +149,11 @@ function App() {
     );
 
     if (Object.hasOwn(updates, "completed")) {
-      setToast(updatedItem.completed ? "Bucket list item completed — nicely done!" : "Moved back to your list");
+      setToast(
+        updatedItem.completed
+          ? "Bucket list item completed — nicely done!"
+          : "Moved back to your list",
+      );
     } else {
       setToast("Changes saved");
     }
@@ -177,7 +181,9 @@ function App() {
     <div className="app-shell">
       <header className="site-header">
         <a className="brand" href="#top" aria-label="Buktu Listu home">
-          <span className="brand__mark" aria-hidden="true">✓</span>
+          <span className="brand__mark" aria-hidden="true">
+            ✓
+          </span>
           <span>Buktu Listu</span>
         </a>
 
@@ -223,10 +229,10 @@ function App() {
 
       <main id="top" className="app-main">
         <section className="intro" aria-labelledby="page-heading">
-          <p className="eyebrow">My lifetime list</p>
-          <h1 id="page-heading">Things I want to do.</h1>
+          <p className="eyebrow">Life In Progress</p>
+          <h1 id="page-heading">Things to do before I die</h1>
           <p className="intro__lead">
-            A thoughtful home for meaningful places, experiences, and goals.
+            Places to visit, milestones to reach, and experiences to try.
           </p>
         </section>
 

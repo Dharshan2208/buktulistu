@@ -3,41 +3,35 @@ import SketchCard from "./ui/SketchCard";
 function BucketStats({ items }) {
   const total = items.length;
   const completed = items.filter((item) => item.completed).length;
-  const completionPercentage = total
-    ? Math.round((completed / total) * 100)
-    : 0;
-
-  const headline =
-    total === 1
-      ? completed
-        ? "Your first dream is complete."
-        : "One dream, ready when you are."
-      : `${completed} of ${total} dreams complete`;
+  const completionPercentage = total ? (completed / total) * 100 : 0;
 
   return (
     <SketchCard className="progress-summary" variant="paper" seed={91}>
       <div className="progress-summary__copy">
         <p className="eyebrow">Your progress</p>
-        <p className="progress-summary__headline">{headline}</p>
       </div>
 
-      {total === 1 ? (
+      <div className="progress-summary__meter">
         <div
-          className={`progress-summary__state ${completed ? "is-complete" : ""}`}
+          className="sketch-progress"
+          role="progressbar"
+          aria-label={`${completed} of ${total} bucket-list items completed`}
+          aria-valuemin="0"
+          aria-valuemax={total}
+          aria-valuenow={completed}
         >
-          <span aria-hidden="true">{completed ? "✓" : "→"}</span>
-          {completed ? "Complete" : "Ready to begin"}
-        </div>
-      ) : (
-        <div className="progress-summary__meter">
-          <div className="progress-summary__value">{completionPercentage}%</div>
-          <progress
-            value={completed}
-            max={total}
-            aria-label={`${completionPercentage}% of bucket-list items completed`}
+          <span
+            className="sketch-progress__fill"
+            style={{
+              width: `${completionPercentage}%`,
+              opacity: completed === 0 ? 0 : 1,
+            }}
           />
         </div>
-      )}
+        <span className="progress-summary__count" aria-hidden="true">
+          {completed}/{total}
+        </span>
+      </div>
     </SketchCard>
   );
 }

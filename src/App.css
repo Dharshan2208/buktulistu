@@ -314,98 +314,84 @@ h3,
 
 .progress-summary .sketch-card__content {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(220px, 0.72fr);
-  gap: 36px;
+  grid-template-columns: auto minmax(260px, 1fr);
+  gap: 30px;
   align-items: center;
-  padding: 30px 34px;
+  padding: 27px 32px;
 }
 
-.progress-summary p {
+.progress-summary .eyebrow {
   margin-bottom: 0;
-}
-
-.progress-summary__headline {
-  font-size: clamp(1.32rem, 2.6vw, 1.72rem);
-  letter-spacing: -0.025em;
-}
-
-.progress-summary__meta {
-  margin-top: 5px !important;
-  color: var(--muted);
-  font-size: 0.88rem;
+  white-space: nowrap;
 }
 
 .progress-summary__meter {
   display: grid;
-  grid-template-columns: auto minmax(120px, 1fr);
-  gap: 14px;
+  grid-template-columns: minmax(120px, 1fr) auto;
+  gap: 16px;
   align-items: center;
 }
 
-.progress-summary__value {
-  min-width: 53px;
-  color: var(--accent-dark);
-  font-weight: 800;
-  text-align: right;
-}
-
-.progress-summary progress {
+.sketch-progress {
+  position: relative;
   width: 100%;
-  height: 13px;
+  height: 22px;
+  padding: 3px;
   overflow: hidden;
-  border: 1px solid #b8ae98;
-  border-radius: 99px;
-  background: #d8d0bf;
+  border: 1.5px solid #65685f;
+  border-radius: 9px 12px 8px 11px;
+  background:
+    repeating-linear-gradient(
+      -12deg,
+      rgba(79, 85, 76, 0.1) 0,
+      rgba(79, 85, 76, 0.1) 1px,
+      transparent 1px,
+      transparent 6px
+    ),
+    #d3cdbf;
+  box-shadow: inset 0 1px 2px rgba(49, 47, 40, 0.16);
+  transform: rotate(-0.15deg);
 }
 
-.progress-summary progress::-webkit-progress-bar {
-  border-radius: 99px;
-  background: #d8d0bf;
+.sketch-progress::after {
+  position: absolute;
+  border: 1px solid rgba(67, 70, 63, 0.32);
+  border-radius: 7px 10px 7px 9px;
+  content: "";
+  inset: 2px;
+  pointer-events: none;
 }
 
-.progress-summary progress::-webkit-progress-value {
-  border-radius: 99px;
-  background: var(--accent);
-  transition: width 220ms ease;
+.sketch-progress__fill {
+  display: block;
+  height: 100%;
+  border: 1px solid #39714e;
+  border-radius: 5px 8px 5px 7px;
+  background:
+    repeating-linear-gradient(
+      -14deg,
+      #b9e8c9 0,
+      #b9e8c9 2px,
+      #dcfce7 2px,
+      #dcfce7 5px
+    ),
+    #dcfce7;
+  transition: width 420ms ease, opacity 180ms ease;
 }
 
-.progress-summary progress::-moz-progress-bar {
-  border-radius: 99px;
-  background: var(--accent);
-}
-
-.progress-summary__state {
-  display: inline-flex;
-  min-height: 46px;
-  align-items: center;
-  justify-self: end;
-  gap: 9px;
-  padding: 9px 15px;
-  border: 1px solid #c9ae42;
-  border-radius: 999px;
-  background: var(--accent-soft);
-  color: #66520c;
-  font-size: 0.88rem;
-  font-weight: 800;
-}
-
-.progress-summary__state span {
-  display: grid;
-  width: 24px;
-  height: 24px;
-  place-items: center;
-  border-radius: 50%;
-  background: var(--accent);
-}
-
-.progress-summary__state.is-complete {
-  border-color: #82b294;
-  background: #e2f4e8;
+.progress-summary__count {
+  min-width: 48px;
+  padding: 6px 8px;
+  border: 1.5px solid #75766d;
+  border-radius: 8px 10px 7px 9px;
+  background: var(--paper);
   color: var(--green);
-}
-
-.progress-summary__state.is-complete span {
-  background: #b9e8c9;
+  font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  font-size: 1rem;
+  font-weight: 800;
+  line-height: 1;
+  text-align: center;
+  transform: rotate(1deg);
 }
 
 .section-heading {
@@ -1316,45 +1302,40 @@ h3,
   color: var(--accent-dark);
 }
 
-[data-theme="dark"] .progress-summary progress,
-[data-theme="dark"] .progress-summary progress::-webkit-progress-bar {
-  border-color: #777c70;
-  background: #555a50;
+[data-theme="dark"] .sketch-progress {
+  border-color: #858b80;
+  background:
+    repeating-linear-gradient(
+      -12deg,
+      rgba(230, 234, 225, 0.08) 0,
+      rgba(230, 234, 225, 0.08) 1px,
+      transparent 1px,
+      transparent 6px
+    ),
+    #4b5048;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.35);
 }
 
-[data-theme="dark"] .progress-summary progress::-webkit-progress-value,
-[data-theme="dark"] .progress-summary progress::-moz-progress-bar {
-  background: var(--green);
+[data-theme="dark"] .sketch-progress::after {
+  border-color: rgba(229, 234, 224, 0.22);
 }
 
-[data-theme="dark"] .progress-summary__segments span {
-  border-color: #73786d;
-  background: #51564d;
+[data-theme="dark"] .sketch-progress__fill {
+  border-color: #80bd94;
+  background:
+    repeating-linear-gradient(
+      -14deg,
+      #4c8c62 0,
+      #4c8c62 2px,
+      #7fc294 2px,
+      #7fc294 5px
+    );
 }
 
-[data-theme="dark"] .progress-summary__segments span.is-complete {
-  border-color: #83c79a;
-  background: #55966d;
-}
-
-[data-theme="dark"] .progress-summary__state {
-  border-color: #656b61;
-  background: #30342e;
-  color: #c8cec8;
-}
-
-[data-theme="dark"] .progress-summary__state span {
-  background: #444a42;
-}
-
-[data-theme="dark"] .progress-summary__state.is-complete {
-  border-color: #4d8260;
-  background: #233b2b;
-  color: var(--green);
-}
-
-[data-theme="dark"] .progress-summary__state.is-complete span {
-  background: #335e42;
+[data-theme="dark"] .progress-summary__count {
+  border-color: #777d72;
+  background: #2c2f29;
+  color: #91d2a6;
 }
 
 @media (max-width: 1080px) {
@@ -1423,11 +1404,7 @@ h3,
   }
 
   .progress-summary__meter {
-    grid-template-columns: 48px 1fr;
-  }
-
-  .progress-summary__state {
-    justify-self: start;
+    grid-template-columns: minmax(0, 1fr) auto;
   }
 
   .filters__controls {
