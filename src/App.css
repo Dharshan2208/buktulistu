@@ -1502,3 +1502,15 @@ h3,
     transition-duration: 0.01ms !important;
   }
 }
+
+.field-error {
+  margin: 2px 0 0;
+  color: var(--danger);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+[aria-invalid="true"] {
+  border-color: var(--danger) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--danger) 18%, transparent);
+}

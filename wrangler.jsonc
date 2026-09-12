@@ -18,8 +18,7 @@
 		{
 			"binding": "bucketlist_db",
 			"database_name": "bucketlist-db",
-			"database_id": "f136b098-8343-483c-b472-a66bb6e66c72",
-			"remote": true
+			"database_id": "f136b098-8343-483c-b472-a66bb6e66c72"
 		}
 	]
 	/**

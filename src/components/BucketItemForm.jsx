@@ -23,6 +23,7 @@ function BucketItemForm({
   }));
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState(null);
+  const [fieldErrors, setFieldErrors] = useState({});
 
   function handleChange(event) {
     const { name, value } = event.target;
@@ -37,6 +38,7 @@ function BucketItemForm({
     event.preventDefault();
     setIsSubmitting(true);
     setFormError(null);
+    setFieldErrors({});
 
     try {
       await onSubmit({
@@ -49,8 +51,16 @@ function BucketItemForm({
         setForm({ ...EMPTY_VALUES });
       }
     } catch (error) {
-      console.error("Unable to save bucket-list item", error);
-      setFormError("Something went wrong while saving this item.");
+      console.error("Unable to save bucket-list item", {
+        error,
+        requestId: error?.requestId,
+      });
+      setFormError(
+        error instanceof Error
+          ? error.message
+          : "Something went wrong while saving this item.",
+      );
+      setFieldErrors(error?.fields ?? {});
     } finally {
       setIsSubmitting(false);
     }
@@ -69,8 +79,18 @@ function BucketItemForm({
             onChange={handleChange}
             placeholder="See the northern lights"
             autoComplete="off"
+            maxLength="120"
+            aria-invalid={Boolean(fieldErrors.title)}
+            aria-describedby={
+              fieldErrors.title ? `${idPrefix}-title-error` : undefined
+            }
             required
           />
+          {fieldErrors.title && (
+            <p id={`${idPrefix}-title-error`} className="field-error">
+              {fieldErrors.title}
+            </p>
+          )}
         </div>
 
         <div className="form-field form-field--wide">
@@ -82,7 +102,19 @@ function BucketItemForm({
             onChange={handleChange}
             placeholder="Why this matters, where you want to go…"
             rows="3"
+            maxLength="1000"
+            aria-invalid={Boolean(fieldErrors.description)}
+            aria-describedby={
+              fieldErrors.description
+                ? `${idPrefix}-description-error`
+                : undefined
+            }
           />
+          {fieldErrors.description && (
+            <p id={`${idPrefix}-description-error`} className="field-error">
+              {fieldErrors.description}
+            </p>
+          )}
         </div>
 
         <div className="form-field form-field--wide">
@@ -93,6 +125,12 @@ function BucketItemForm({
               name="category"
               value={form.category}
               onChange={handleChange}
+              aria-invalid={Boolean(fieldErrors.category)}
+              aria-describedby={
+                fieldErrors.category
+                  ? `${idPrefix}-category-error`
+                  : undefined
+              }
             >
               {CATEGORY_OPTIONS.map((category) => (
                 <option key={category.value} value={category.value}>
@@ -104,12 +142,17 @@ function BucketItemForm({
               ▾
             </span>
           </div>
+          {fieldErrors.category && (
+            <p id={`${idPrefix}-category-error`} className="field-error">
+              {fieldErrors.category}
+            </p>
+          )}
         </div>
       </fieldset>
 
-      {formError && (
+      {(formError || fieldErrors.request) && (
         <p className="form-error" role="alert">
-          {formError}
+          {fieldErrors.request ?? formError}
         </p>
       )}
 

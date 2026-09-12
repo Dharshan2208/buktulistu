@@ -1,13 +1,24 @@
-const VALID_PRIORITIES = ["low", "medium", "high"];
+import { errorResponse, readJsonObject } from "../utils/http.js";
+import {
+  validateCreateItem,
+  validateUpdateItem,
+} from "../utils/validation.js";
 
-function errorResponse(message, status) {
-  return Response.json(
-    {
-      error: message,
-    },
-    {
-      status,
-    },
+const UPDATE_COLUMNS = {
+  title: "title",
+  description: "description",
+  category: "category",
+  priority: "priority",
+  completed: "completed",
+  target_date: "target_date",
+};
+
+function validationError(fields) {
+  return errorResponse(
+    "Please correct the invalid fields",
+    422,
+    "VALIDATION_ERROR",
+    fields,
   );
 }
 
@@ -26,19 +37,13 @@ export async function getItems(env) {
 }
 
 export async function createItem(request, env) {
-  let body;
+  const parsed = await readJsonObject(request);
 
-  try {
-    body = await request.json();
-  } catch {
-    return errorResponse("Request body must be valid JSON", 400);
-  }
+  if (parsed.response) return parsed.response;
 
-  const title = typeof body?.title === "string" ? body.title.trim() : "";
+  const { data, fields } = validateCreateItem(parsed.body);
 
-  if (!title) {
-    return errorResponse("Title is required", 400);
-  }
+  if (Object.keys(fields).length > 0) return validationError(fields);
 
   const newItem = await env.bucketlist_db
     .prepare(
@@ -55,17 +60,15 @@ export async function createItem(request, env) {
       `,
     )
     .bind(
-      title,
-      body.description ?? null,
-      body.category ?? "general",
-      body.priority ?? "medium",
-      body.target_date ?? null,
+      data.title,
+      data.description,
+      data.category,
+      data.priority,
+      data.target_date,
     )
     .first();
 
-  return Response.json(newItem, {
-    status: 201,
-  });
+  return Response.json(newItem, { status: 201 });
 }
 
 export async function deleteItem(env, itemId) {
@@ -80,97 +83,31 @@ export async function deleteItem(env, itemId) {
     .run();
 
   if (result.meta.changes === 0) {
-    return errorResponse("Bucket item not found", 404);
+    return errorResponse(
+      "Bucket item not found",
+      404,
+      "ITEM_NOT_FOUND",
+    );
   }
 
-  return new Response(null, {
-    status: 204,
-  });
+  return new Response(null, { status: 204 });
 }
 
 export async function updateItem(request, env, itemId) {
-  let body;
+  const parsed = await readJsonObject(request);
 
-  try {
-    body = await request.json();
-  } catch {
-    return errorResponse("Request body must be valid JSON", 400);
-  }
+  if (parsed.response) return parsed.response;
 
-  if (!body || typeof body !== "object" || Array.isArray(body)) {
-    return errorResponse("Request body must be a JSON object", 400);
-  }
+  const { data, fields } = validateUpdateItem(parsed.body);
+
+  if (Object.keys(fields).length > 0) return validationError(fields);
 
   const assignments = [];
   const values = [];
 
-  if (body.title !== undefined) {
-    const title = typeof body.title === "string" ? body.title.trim() : "";
-
-    if (!title) {
-      return errorResponse("Title is required", 400);
-    }
-
-    assignments.push("title = ?");
-    values.push(title);
-  }
-
-  if (body.category !== undefined) {
-    const category =
-      typeof body.category === "string" ? body.category.trim() : "";
-
-    if (!category) {
-      return errorResponse("Category is required", 400);
-    }
-
-    assignments.push("category = ?");
-    values.push(category);
-  }
-
-  if (body.priority !== undefined) {
-    if (!VALID_PRIORITIES.includes(body.priority)) {
-      return errorResponse("Priority must be low, medium, or high", 400);
-    }
-
-    assignments.push("priority = ?");
-    values.push(body.priority);
-  }
-
-  if (body.completed !== undefined) {
-    let completed;
-
-    if (typeof body.completed === "boolean") {
-      completed = body.completed ? 1 : 0;
-    } else if (body.completed === 0 || body.completed === 1) {
-      completed = body.completed;
-    } else {
-      return errorResponse("Completed must be a boolean", 400);
-    }
-
-    assignments.push("completed = ?");
-    values.push(completed);
-  }
-
-  if (body.description !== undefined) {
-    if (body.description !== null && typeof body.description !== "string") {
-      return errorResponse("Description must be a string or null", 400);
-    }
-
-    assignments.push("description = ?");
-    values.push(body.description || null);
-  }
-
-  if (body.target_date !== undefined) {
-    if (body.target_date !== null && typeof body.target_date !== "string") {
-      return errorResponse("Target date must be a string or null", 400);
-    }
-
-    assignments.push("target_date = ?");
-    values.push(body.target_date || null);
-  }
-
-  if (assignments.length === 0) {
-    return errorResponse("At least one field must be updated", 400);
+  for (const [field, value] of Object.entries(data)) {
+    assignments.push(`${UPDATE_COLUMNS[field]} = ?`);
+    values.push(field === "completed" ? (value ? 1 : 0) : value);
   }
 
   const updatedItem = await env.bucketlist_db
@@ -188,7 +125,11 @@ export async function updateItem(request, env, itemId) {
     .first();
 
   if (!updatedItem) {
-    return errorResponse("Bucket item not found", 404);
+    return errorResponse(
+      "Bucket item not found",
+      404,
+      "ITEM_NOT_FOUND",
+    );
   }
 
   return Response.json(updatedItem);
