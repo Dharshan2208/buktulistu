@@ -1702,7 +1702,6 @@ h3,
 
   .filter-menu__options {
     top: calc(100% + 8px);
-    width: calc(200% + 10px);
     max-height: min(45vh, 320px);
     padding: 8px;
     overscroll-behavior: contain;
@@ -1713,11 +1712,13 @@ h3,
   .filter-menu-field:first-child .filter-menu__options {
     right: auto;
     left: 0;
+    width: min(250px, calc(100vw - 28px));
   }
 
   .filter-menu-field:last-child .filter-menu__options {
     right: 0;
     left: auto;
+    width: min(220px, calc(100vw - 28px));
   }
 
   .filter-menu__options button {
