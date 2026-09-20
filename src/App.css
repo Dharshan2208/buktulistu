@@ -1696,8 +1696,43 @@ h3,
     white-space: nowrap;
   }
 
+  .filter-menu[open] {
+    z-index: 40;
+  }
+
+  .filter-menu__options {
+    top: calc(100% + 8px);
+    width: calc(200% + 10px);
+    max-height: min(45vh, 320px);
+    padding: 8px;
+    overscroll-behavior: contain;
+    border-radius: 14px;
+    box-shadow: 0 14px 34px rgba(53, 49, 39, 0.22);
+  }
+
+  .filter-menu-field:first-child .filter-menu__options {
+    right: auto;
+    left: 0;
+  }
+
+  .filter-menu-field:last-child .filter-menu__options {
+    right: 0;
+    left: auto;
+  }
+
   .filter-menu__options button {
-    min-height: 44px;
+    min-height: 48px;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 9px;
+    font-size: 0.875rem;
+    line-height: 1.3;
+  }
+
+  .filter-menu__options button > span:first-child {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .filters__meta {

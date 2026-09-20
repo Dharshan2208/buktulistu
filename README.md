@@ -89,34 +89,4 @@ viewer-specific empty state. A stale session that receives `401` during a
 mutation is returned to the password gate. A `403` is explained as a read-only
 session rather than as a generic failure.
 
-## Security notes
 
-- The session cookie contains only a role and expiry. It is signed with
-  HMAC-SHA256, is `HttpOnly` and `SameSite=Lax`, and receives `Secure` on HTTPS.
-- The Worker verifies the signature and expiry on every protected request.
-  Client-side role checks are presentation only; all mutations call the
-  server-side owner guard.
-- State-changing API requests with a foreign `Origin` are rejected. API
-  responses disable caching and MIME sniffing and include a request ID.
-- Password checks compare fixed-length HMAC digests to avoid content-dependent
-  string comparison timing. Secrets stay in `.dev.vars` locally and encrypted
-  Worker secrets in production.
-- This is intentionally a shared-password model, not individual user accounts.
-  It has no per-person revocation, identity audit trail, password recovery, or
-  built-in login rate limit. For a public/high-risk deployment, add Cloudflare
-  rate limiting or Access, monitoring, and individual identities.
-
-Never commit `.dev.vars`; it is ignored by Git. Treat the viewer password as
-private because it grants access to the entire list, and treat the owner
-password and session secret as higher-impact credentials.
-
-## API routes
-
-- `POST /api/auth` — sign in with `{ "password": "..." }`
-- `GET /api/auth/me` — return the active role
-- `POST /api/auth/logout` — clear the session cookie
-- `GET /api/items` — list items for an authenticated session
-- `POST /api/items` — create an item (owner only)
-- `PATCH /api/items/:id` — edit or complete an item (owner only)
-- `DELETE /api/items/:id` — delete an item (owner only)
-- `GET /api/health` — health check
