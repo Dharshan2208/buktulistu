@@ -408,6 +408,28 @@ h3,
   letter-spacing: -0.035em;
 }
 
+.role-badge {
+  display: inline-flex;
+  min-height: 30px;
+  align-items: center;
+  padding: 5px 11px;
+  border: 1px solid var(--line);
+  border-radius: 99px;
+  background: var(--paper);
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.045em;
+  text-transform: uppercase;
+  transform: rotate(0.5deg);
+}
+
+.role-badge--owner {
+  border-color: #d8bd50;
+  background: var(--accent-soft);
+  color: var(--accent-dark);
+}
+
 .section-heading .eyebrow {
   margin-bottom: 10px;
 }
@@ -705,7 +727,8 @@ h3,
   gap: 8px;
 }
 
-.completion-toggle {
+.completion-toggle,
+.completion-indicator {
   display: grid;
   width: 30px;
   height: 30px;
@@ -722,6 +745,11 @@ h3,
     transform 160ms ease, background 160ms ease;
 }
 
+.completion-indicator {
+  cursor: default;
+  box-shadow: none;
+}
+
 .completion-toggle:hover:not(:disabled) {
   border-color: var(--accent-dark);
   background: var(--accent-soft);
@@ -729,7 +757,8 @@ h3,
   transform: rotate(-6deg) scale(1.06);
 }
 
-.completion-toggle[aria-pressed="false"] span {
+.completion-toggle[aria-pressed="false"] span,
+.completion-indicator[data-completed="false"] span {
   width: 9px;
   height: 9px;
   border-radius: 50%;
@@ -738,7 +767,8 @@ h3,
   opacity: 0.72;
 }
 
-.is-completed .completion-toggle {
+.is-completed .completion-toggle,
+.is-completed .completion-indicator {
   background: #b9e8c9;
 }
 
@@ -1236,11 +1266,17 @@ h3,
   background: #292b25;
 }
 
+[data-theme="dark"] .completion-indicator {
+  border-color: #767b70;
+  background: #292b25;
+}
+
 [data-theme="dark"] .completion-toggle:hover:not(:disabled) {
   background: var(--accent-soft);
 }
 
-[data-theme="dark"] .is-completed .completion-toggle {
+[data-theme="dark"] .is-completed .completion-toggle,
+[data-theme="dark"] .is-completed .completion-indicator {
   background: #3f7954;
   color: #e9f7ed;
 }
@@ -1387,6 +1423,11 @@ h3,
 
   .intro {
     margin-bottom: 28px;
+  }
+
+  .section-heading {
+    gap: 16px;
+    align-items: flex-start;
   }
 
   .intro h1 {

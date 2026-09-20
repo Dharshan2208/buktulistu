@@ -5,7 +5,7 @@ import Modal from "./ui/Modal";
 import SketchButton from "./ui/SketchButton";
 import SketchCard from "./ui/SketchCard";
 
-function BucketItem({ item, onUpdate, onDelete }) {
+function BucketItem({ item, isOwner, onUpdate, onDelete }) {
   const [isEditing, setIsEditing] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isBusy, setIsBusy] = useState(false);
@@ -55,24 +55,35 @@ function BucketItem({ item, onUpdate, onDelete }) {
         seed={220 + item.id}
       >
         <div className="bucket-card__topline">
-          <button
-            type="button"
-            className="completion-toggle"
-            aria-label={
-              item.completed
-                ? `Mark ${item.title} as incomplete`
-                : `Mark ${item.title} as completed`
-            }
-            aria-pressed={Boolean(item.completed)}
-            disabled={isBusy}
-            onClick={handleToggleCompleted}
-          >
-            <span aria-hidden="true">{item.completed ? "✓" : ""}</span>
-          </button>
+          {isOwner ? (
+            <button
+              type="button"
+              className="completion-toggle"
+              aria-label={
+                item.completed
+                  ? `Mark ${item.title} as incomplete`
+                  : `Mark ${item.title} as completed`
+              }
+              aria-pressed={Boolean(item.completed)}
+              disabled={isBusy}
+              onClick={handleToggleCompleted}
+            >
+              <span aria-hidden="true">{item.completed ? "✓" : ""}</span>
+            </button>
+          ) : (
+            <span
+              className="completion-indicator"
+              data-completed={item.completed}
+              aria-label={item.completed ? "Completed" : "Not completed"}
+              title={item.completed ? "Completed" : "Not completed"}
+            >
+              <span aria-hidden="true">{item.completed ? "✓" : ""}</span>
+            </span>
+          )}
 
           <span className="category-tag">{formatCategory(item.category)}</span>
 
-          <div className="bucket-card__actions">
+          {isOwner && <div className="bucket-card__actions">
             <button
               type="button"
               className="icon-button"
@@ -99,7 +110,7 @@ function BucketItem({ item, onUpdate, onDelete }) {
                 <path d="M10 11v5M14 11v5" />
               </svg>
             </button>
-          </div>
+          </div>}
         </div>
 
         <div className="bucket-card__body">
@@ -114,52 +125,56 @@ function BucketItem({ item, onUpdate, onDelete }) {
         )}
       </SketchCard>
 
-      <Modal
-        open={isEditing}
-        title="Edit this dream"
-        description="Keep the details useful and the goal meaningful."
-        onClose={() => setIsEditing(false)}
-      >
-        <BucketItemForm
-          idPrefix={`edit-${item.id}`}
-          initialValues={{
-            title: item.title,
-            description: item.description ?? "",
-            category: item.category,
-          }}
-          onSubmit={handleEdit}
-          onCancel={() => setIsEditing(false)}
-          submitLabel="Save changes"
-          busyLabel="Saving…"
-        />
-      </Modal>
+      {isOwner && (
+        <>
+          <Modal
+            open={isEditing}
+            title="Edit this dream"
+            description="Keep the details useful and the goal meaningful."
+            onClose={() => setIsEditing(false)}
+          >
+            <BucketItemForm
+              idPrefix={`edit-${item.id}`}
+              initialValues={{
+                title: item.title,
+                description: item.description ?? "",
+                category: item.category,
+              }}
+              onSubmit={handleEdit}
+              onCancel={() => setIsEditing(false)}
+              submitLabel="Save changes"
+              busyLabel="Saving…"
+            />
+          </Modal>
 
-      <Modal
-        open={isDeleteOpen}
-        title={`Delete “${item.title}”?`}
-        description="This item will be permanently removed from your bucket list."
-        onClose={() => !isBusy && setIsDeleteOpen(false)}
-        className="confirm-modal"
-      >
-        <div className="confirm-actions">
-          <button
-            type="button"
-            className="text-button"
-            disabled={isBusy}
-            onClick={() => setIsDeleteOpen(false)}
+          <Modal
+            open={isDeleteOpen}
+            title={`Delete “${item.title}”?`}
+            description="This item will be permanently removed from your bucket list."
+            onClose={() => !isBusy && setIsDeleteOpen(false)}
+            className="confirm-modal"
           >
-            Keep it
-          </button>
-          <SketchButton
-            type="button"
-            variant="red"
-            disabled={isBusy}
-            onClick={handleDelete}
-          >
-            {isBusy ? "Deleting…" : "Delete item"}
-          </SketchButton>
-        </div>
-      </Modal>
+            <div className="confirm-actions">
+              <button
+                type="button"
+                className="text-button"
+                disabled={isBusy}
+                onClick={() => setIsDeleteOpen(false)}
+              >
+                Keep it
+              </button>
+              <SketchButton
+                type="button"
+                variant="red"
+                disabled={isBusy}
+                onClick={handleDelete}
+              >
+                {isBusy ? "Deleting…" : "Delete item"}
+              </SketchButton>
+            </div>
+          </Modal>
+        </>
+      )}
     </li>
   );
 }

@@ -24,6 +24,7 @@ function BucketList({
   error,
   emptyMessage,
   hasItems,
+  isOwner,
   onAdd,
   onUpdate,
   onDelete,
@@ -45,14 +46,26 @@ function BucketList({
   }
 
   if (items.length === 0) {
+    const isFilteredEmpty = hasItems;
+
     return (
       <SketchCard variant="paper" dashed className="state-card">
         <span className="state-card__mark" aria-hidden="true">
-          {hasItems ? "⌕" : "+"}
+          {isFilteredEmpty ? "⌕" : isOwner ? "+" : "○"}
         </span>
-        <h3>{hasItems ? "No matching dreams" : "No bucket-list items yet"}</h3>
-        <p>{emptyMessage}</p>
-        {!hasItems && (
+        <h3>
+          {isFilteredEmpty
+            ? "No matching dreams"
+            : isOwner
+              ? "Your list is ready"
+              : "Nothing to view yet"}
+        </h3>
+        <p>
+          {!isFilteredEmpty && !isOwner
+            ? "The owner hasn't added any bucket-list items yet. Check back soon."
+            : emptyMessage}
+        </p>
+        {!isFilteredEmpty && isOwner && (
           <SketchButton type="button" onClick={onAdd} variant="yellow">
             Add your first item
           </SketchButton>
@@ -67,6 +80,7 @@ function BucketList({
         <BucketItem
           key={item.id}
           item={item}
+          isOwner={isOwner}
           onUpdate={onUpdate}
           onDelete={onDelete}
         />

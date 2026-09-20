@@ -55,6 +55,7 @@ function App() {
   const [sortBy, setSortBy] = useState("newest");
 
   const isAuthenticated = session.status === "authenticated";
+  const isOwner = isAuthenticated && session.role === "owner";
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -100,6 +101,9 @@ function App() {
     let ignore = false;
 
     async function loadItems() {
+      setIsLoading(true);
+      setLoadError(null);
+
       try {
         const data = await getItems();
 
@@ -114,6 +118,7 @@ function App() {
         }
 
         if (error instanceof ApiError && error.status === 401) {
+          setItems([]);
           setSession({
             status: "guest",
             notice: "Your session has expired. Sign in again to view this list.",
@@ -148,6 +153,8 @@ function App() {
   async function handleLogin(password) {
     const { role } = await login(password);
 
+    setLoadError(null);
+    setIsLoading(true);
     setSession({ status: "authenticated", role });
     setToast(
       role === "owner"
@@ -163,7 +170,33 @@ function App() {
       console.error("Unable to sign out on the server", error);
       setToast("Couldn't clear your session on the server. Please try again.");
     } finally {
+      setItems([]);
+      setLoadError(null);
+      setIsLoading(true);
+      setIsCreateOpen(false);
       setSession({ status: "guest", notice: "" });
+    }
+  }
+
+  function handleMutationError(error) {
+    if (!(error instanceof ApiError)) {
+      return;
+    }
+
+    if (error.status === 401) {
+      setItems([]);
+      setLoadError(null);
+      setIsLoading(true);
+      setIsCreateOpen(false);
+      setSession({
+        status: "guest",
+        notice: "Your session has expired. Sign in again to make changes.",
+      });
+      return;
+    }
+
+    if (error.status === 403) {
+      setToast("This session is read-only. Sign in as the owner to make changes.");
     }
   }
 
@@ -253,6 +286,7 @@ function App() {
       setItems((currentItems) =>
         currentItems.filter((item) => item.id !== temporaryId),
       );
+      handleMutationError(error);
       throw error;
     }
   }
@@ -298,6 +332,7 @@ function App() {
       setItems((currentItems) =>
         currentItems.map((item) => (item.id === id ? previousItem : item)),
       );
+      handleMutationError(error);
       throw error;
     }
   }
@@ -315,13 +350,19 @@ function App() {
     try {
       await deleteItem(id);
       setToast("Item removed");
-    } catch {
+    } catch (error) {
       setItems((currentItems) => {
         const restoredItems = [...currentItems];
         restoredItems.splice(deletedIndex, 0, deletedItem);
         return restoredItems;
       });
-      setToast("Couldn't delete this item. Please try again.");
+      handleMutationError(error);
+
+      if (!(error instanceof ApiError) || ![401, 403].includes(error.status)) {
+        setToast("Couldn't delete this item. Please try again.");
+      }
+
+      throw error;
     }
   }
 
@@ -399,13 +440,15 @@ function App() {
             </svg>
           </button>
 
-          <SketchButton
-            className="header-add"
-            variant="yellow"
-            onClick={() => setIsCreateOpen(true)}
-          >
-            <span aria-hidden="true">＋</span> Add item
-          </SketchButton>
+          {isOwner && (
+            <SketchButton
+              className="header-add"
+              variant="yellow"
+              onClick={() => setIsCreateOpen(true)}
+            >
+              <span aria-hidden="true">＋</span> Add item
+            </SketchButton>
+          )}
         </div>
       </header>
 
@@ -434,6 +477,9 @@ function App() {
               <p className="eyebrow">The list</p>
               <h2 id="list-heading">Dreams worth chasing</h2>
             </div>
+            <span className={`role-badge role-badge--${session.role}`}>
+              {isOwner ? "Owner · editing" : "Viewer · read only"}
+            </span>
           </div>
 
           <BucketFilters
@@ -458,6 +504,7 @@ function App() {
             error={loadError}
             emptyMessage={emptyMessage}
             hasItems={items.length > 0}
+            isOwner={isOwner}
             onAdd={() => setIsCreateOpen(true)}
             onUpdate={handleUpdate}
             onDelete={handleDelete}
@@ -465,21 +512,23 @@ function App() {
         </section>
       </main>
 
-      <Modal
-        open={isCreateOpen}
-        title="Add to my bucket list"
-        description="Capture the idea now. You can refine the details anytime."
-        onClose={() => setIsCreateOpen(false)}
-      >
-        <BucketItemForm
-          idPrefix="create"
-          onSubmit={handleCreate}
-          onCancel={() => setIsCreateOpen(false)}
-          submitLabel="Add item"
-          busyLabel="Adding…"
-          resetAfterSubmit
-        />
-      </Modal>
+      {isOwner && (
+        <Modal
+          open={isCreateOpen}
+          title="Add to my bucket list"
+          description="Capture the idea now. You can refine the details anytime."
+          onClose={() => setIsCreateOpen(false)}
+        >
+          <BucketItemForm
+            idPrefix="create"
+            onSubmit={handleCreate}
+            onCancel={() => setIsCreateOpen(false)}
+            submitLabel="Add item"
+            busyLabel="Adding…"
+            resetAfterSubmit
+          />
+        </Modal>
+      )}
 
       <SketchToast message={toast} />
     </div>
