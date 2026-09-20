@@ -2,6 +2,7 @@ import {
   createItem,
   deleteItem,
   getItems,
+  toggleReaction,
   updateItem,
 } from "./handlers/items.js";
 import { addApiHeaders, errorResponse } from "./utils/http.js";
@@ -41,6 +42,15 @@ async function routeRequest(request, env, url) {
     if (request.method === "GET") return getItems(env);
     if (request.method === "POST") return createItem(request, env);
     return methodNotAllowed(["GET", "POST"]);
+  }
+
+  const reactionRoute = url.pathname.match(/^\/api\/items\/([1-9]\d*)\/reaction$/);
+
+  if (reactionRoute) {
+    const itemId = Number(reactionRoute[1]);
+
+    if (request.method === "PUT") return toggleReaction(request, env, itemId);
+    return methodNotAllowed(["PUT"]);
   }
 
   const itemRoute = url.pathname.match(/^\/api\/items\/([1-9]\d*)$/);
