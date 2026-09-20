@@ -1,6 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
-import { createItem, deleteItem, getItems, updateItem } from "./api/bucketApi";
+import {
+  ApiError,
+  createItem,
+  deleteItem,
+  getCurrentSession,
+  getItems,
+  login,
+  logout,
+  updateItem,
+} from "./api/bucketApi";
 import { CATEGORY_OPTIONS } from "./categories";
+import AccessGate, { GateLoading } from "./components/AccessGate";
 import BucketFilters from "./components/BucketFilters";
 import BucketItemForm from "./components/BucketItemForm";
 import BucketList from "./components/BucketList";
@@ -31,6 +41,7 @@ function getInitialTheme() {
 }
 
 function App() {
+  const [session, setSession] = useState({ status: "checking" });
   const [items, setItems] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState(null);
@@ -43,6 +54,8 @@ function App() {
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [sortBy, setSortBy] = useState("newest");
 
+  const isAuthenticated = session.status === "authenticated";
+
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
     document.documentElement.style.colorScheme = theme;
@@ -50,6 +63,40 @@ function App() {
   }, [theme]);
 
   useEffect(() => {
+    let ignore = false;
+
+    getCurrentSession()
+      .then((role) => {
+        if (ignore) return;
+
+        setSession(
+          role
+            ? { status: "authenticated", role }
+            : { status: "guest", notice: "" },
+        );
+      })
+      .catch((error) => {
+        console.error("Unable to check the current session", error);
+
+        if (ignore) return;
+
+        setSession({
+          status: "guest",
+          notice:
+            "Couldn't check your session. If this keeps failing, the server may be unreachable.",
+        });
+      });
+
+    return () => {
+      ignore = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      return undefined;
+    }
+
     let ignore = false;
 
     async function loadItems() {
@@ -62,9 +109,19 @@ function App() {
       } catch (error) {
         console.error("Unable to load bucket list items", error);
 
-        if (!ignore) {
-          setLoadError("Couldn't load your bucket list.");
+        if (ignore) {
+          return;
         }
+
+        if (error instanceof ApiError && error.status === 401) {
+          setSession({
+            status: "guest",
+            notice: "Your session has expired. Sign in again to view this list.",
+          });
+          return;
+        }
+
+        setLoadError("Couldn't load your bucket list.");
       } finally {
         if (!ignore) {
           setIsLoading(false);
@@ -77,7 +134,7 @@ function App() {
     return () => {
       ignore = true;
     };
-  }, []);
+  }, [isAuthenticated]);
 
   useEffect(() => {
     if (!toast) {
@@ -87,6 +144,28 @@ function App() {
     const timeout = window.setTimeout(() => setToast(""), 2800);
     return () => window.clearTimeout(timeout);
   }, [toast]);
+
+  async function handleLogin(password) {
+    const { role } = await login(password);
+
+    setSession({ status: "authenticated", role });
+    setToast(
+      role === "owner"
+        ? "Signed in — you can add and edit this list"
+        : "Signed in — viewing in read-only mode",
+    );
+  }
+
+  async function handleLogout() {
+    try {
+      await logout();
+    } catch (error) {
+      console.error("Unable to sign out on the server", error);
+      setToast("Couldn't clear your session on the server. Please try again.");
+    } finally {
+      setSession({ status: "guest", notice: "" });
+    }
+  }
 
   const categories = useMemo(() => {
     const uniqueCategories = new Set([
@@ -258,6 +337,14 @@ function App() {
       ? "Add something you've always wanted to do."
       : "Try a different search or clear your filters.";
 
+  if (session.status === "checking") {
+    return <GateLoading />;
+  }
+
+  if (session.status === "guest") {
+    return <AccessGate notice={session.notice} onLogin={handleLogin} />;
+  }
+
   return (
     <div className="app-shell">
       <header className="site-header">
@@ -296,6 +383,20 @@ function App() {
                 <path d="M20.4 15.3A8.5 8.5 0 0 1 8.7 3.6 8.5 8.5 0 1 0 20.4 15.3Z" />
               </svg>
             )}
+          </button>
+
+          <button
+            type="button"
+            className="theme-toggle lock-toggle"
+            aria-label="Sign out and lock this list"
+            title="Sign out and lock this list"
+            onClick={handleLogout}
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <rect x="5.5" y="11" width="13" height="8.5" rx="2" />
+              <path d="M8.5 11V7.5a3.5 3.5 0 0 1 7 0V11" />
+              <path d="M12 14.5v2.5" />
+            </svg>
           </button>
 
           <SketchButton

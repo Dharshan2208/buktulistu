@@ -92,3 +92,46 @@ export function updateItem(id, updates) {
     "Failed to update bucket item",
   );
 }
+
+/**
+ * Resolve the current session's role, or null when there is no valid session.
+ * A missing/invalid session is expected state (401), so it resolves to null
+ * instead of throwing; real failures (network, server) still throw.
+ */
+export async function getCurrentSession() {
+  try {
+    const payload = await apiRequest(
+      "/api/auth/me",
+      { method: "GET", cache: "no-store" },
+      "Failed to check your session",
+    );
+
+    return payload.role;
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 401) {
+      return null;
+    }
+
+    throw error;
+  }
+}
+
+export function login(password) {
+  return apiRequest(
+    "/api/auth",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password }),
+    },
+    "Failed to sign in",
+  );
+}
+
+export function logout() {
+  return apiRequest(
+    "/api/auth/logout",
+    { method: "POST" },
+    "Failed to sign out",
+  );
+}
