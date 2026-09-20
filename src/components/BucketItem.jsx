@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useId, useState } from "react";
 import { formatCategory } from "../categories";
 import BucketItemForm from "./BucketItemForm";
 import Modal from "./ui/Modal";
@@ -6,8 +6,11 @@ import SketchButton from "./ui/SketchButton";
 import SketchCard from "./ui/SketchCard";
 
 function BucketItem({ item, isOwner, onUpdate, onDelete }) {
+  const generatedId = useId();
+  const detailsId = `bucket-item-details-${generatedId}`;
   const [isEditing, setIsEditing] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
   const [isBusy, setIsBusy] = useState(false);
   const [actionError, setActionError] = useState(null);
 
@@ -47,7 +50,14 @@ function BucketItem({ item, isOwner, onUpdate, onDelete }) {
   }
 
   return (
-    <li className={item.completed ? "is-completed" : ""}>
+    <li
+      className={[
+        item.completed ? "is-completed" : "",
+        isExpanded ? "is-expanded" : "",
+      ]
+        .filter(Boolean)
+        .join(" ")}
+    >
       <SketchCard
         className="bucket-card"
         contentClassName="bucket-card__content"
@@ -83,39 +93,67 @@ function BucketItem({ item, isOwner, onUpdate, onDelete }) {
 
           <span className="category-tag">{formatCategory(item.category)}</span>
 
-          {isOwner && <div className="bucket-card__actions">
-            <button
-              type="button"
-              className="icon-button"
-              aria-label={`Edit ${item.title}`}
-              disabled={isBusy}
-              onClick={() => setIsEditing(true)}
-            >
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M4 20h4l11-11-4-4L4 16v4Z" />
-                <path d="m13.5 6.5 4 4" />
-              </svg>
-            </button>
-            <button
-              type="button"
-              className="icon-button icon-button--danger"
-              aria-label={`Delete ${item.title}`}
-              disabled={isBusy}
-              onClick={() => setIsDeleteOpen(true)}
-            >
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M4 7h16" />
-                <path d="M9 7V4h6v3" />
-                <path d="m6 7 1 13h10l1-13" />
-                <path d="M10 11v5M14 11v5" />
-              </svg>
-            </button>
-          </div>}
+          {isOwner && (
+            <div className="bucket-card__actions">
+              <button
+                type="button"
+                className="icon-button"
+                aria-label={`Edit ${item.title}`}
+                disabled={isBusy}
+                onClick={() => setIsEditing(true)}
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M4 20h4l11-11-4-4L4 16v4Z" />
+                  <path d="m13.5 6.5 4 4" />
+                </svg>
+              </button>
+              <button
+                type="button"
+                className="icon-button icon-button--danger"
+                aria-label={`Delete ${item.title}`}
+                disabled={isBusy}
+                onClick={() => setIsDeleteOpen(true)}
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M4 7h16" />
+                  <path d="M9 7V4h6v3" />
+                  <path d="m6 7 1 13h10l1-13" />
+                  <path d="M10 11v5M14 11v5" />
+                </svg>
+              </button>
+            </div>
+          )}
         </div>
 
         <div className="bucket-card__body">
-          <h3>{item.title}</h3>
-          {item.description && <p>{item.description}</p>}
+          {item.description ? (
+            <>
+              <h3 className="bucket-card__title">
+                <button
+                  type="button"
+                  className="bucket-card__summary"
+                  aria-expanded={isExpanded}
+                  aria-controls={detailsId}
+                  aria-label={`${isExpanded ? "Hide" : "Show"} details for ${item.title}`}
+                  onClick={() => setIsExpanded((expanded) => !expanded)}
+                >
+                  <span>{item.title}</span>
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="m7 9.5 5 5 5-5" />
+                  </svg>
+                </button>
+              </h3>
+              <div
+                id={detailsId}
+                className="bucket-card__details"
+                hidden={!isExpanded}
+              >
+                <p>{item.description}</p>
+              </div>
+            </>
+          ) : (
+            <h3 className="bucket-card__title">{item.title}</h3>
+          )}
         </div>
 
         {actionError && (

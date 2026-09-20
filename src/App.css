@@ -701,7 +701,7 @@ h3,
 }
 
 .bucket-card {
-  min-height: 228px;
+  min-height: 156px;
   transition: transform 180ms ease;
 }
 
@@ -711,9 +711,9 @@ h3,
 
 .bucket-card__content {
   display: flex;
-  min-height: 228px;
+  min-height: 156px;
   flex-direction: column;
-  padding: 21px;
+  padding: 18px;
 }
 
 .bucket-card__topline,
@@ -797,15 +797,70 @@ h3,
 
 .bucket-card__body {
   flex: 1;
-  padding: 20px 2px 18px;
+  padding: 14px 2px 8px;
 }
 
 .bucket-card__body h3 {
-  margin-bottom: 9px;
+  margin-bottom: 0;
   font-size: clamp(1.25rem, 2.1vw, 1.55rem);
   font-weight: 600;
   letter-spacing: -0.025em;
   line-height: 1.15;
+}
+
+.bucket-card__summary {
+  display: flex;
+  width: 100%;
+  min-height: 48px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  line-height: inherit;
+  text-align: left;
+}
+
+.bucket-card__summary > span {
+  min-width: 0;
+}
+
+.bucket-card__summary svg {
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
+  padding: 5px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+  transition: background 160ms ease, transform 180ms ease;
+}
+
+.bucket-card__summary:hover svg {
+  background: var(--accent-soft);
+}
+
+.is-expanded .bucket-card__summary svg {
+  transform: rotate(180deg);
+}
+
+.bucket-card__details {
+  margin-top: 9px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--line);
+}
+
+.bucket-card__details p {
+  display: block;
+  overflow: visible;
+  -webkit-line-clamp: unset;
 }
 
 .bucket-card__body p {
@@ -1746,16 +1801,16 @@ h3,
   }
 
   .bucket-grid {
-    gap: 14px;
+    gap: 10px;
   }
 
   .bucket-card,
   .bucket-card__content {
-    min-height: 204px;
+    min-height: 128px;
   }
 
   .bucket-card__content {
-    padding: 18px;
+    padding: 14px;
   }
 
   .bucket-card__topline {
@@ -1802,13 +1857,23 @@ h3,
   }
 
   .bucket-card__body {
-    padding: 14px 2px 10px;
+    padding: 8px 0 0;
   }
 
   .bucket-card__body h3 {
     min-height: 2.3em;
-    margin-bottom: 8px;
+    margin-bottom: 0;
     font-size: 1.3rem;
+  }
+
+  .bucket-card__summary {
+    min-height: 48px;
+    gap: 10px;
+  }
+
+  .bucket-card__details {
+    margin-top: 7px;
+    padding: 10px 2px 4px;
   }
 
   .bucket-card__body p {
