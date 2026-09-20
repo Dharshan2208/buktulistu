@@ -1,0 +1,17 @@
+# Buktu Listu local development secrets.
+# Copy this file to `.dev.vars` and fill in your real values before running `npm run dev`.
+# `.dev.vars` is git-ignored — never commit real passwords.
+#
+# OWNER_PASSWORD:  unlocks full edit access. Keep this to yourself.
+# VIEWER_PASSWORD: shares the list in read-only mode. This is the one you give friends.
+# SESSION_SECRET:  signs the session cookie so the viewer role cannot be forged.
+#                  Use a long random string, e.g. `openssl rand -base64 32`.
+#
+# In production these are set with:
+#   wrangler secret put OWNER_PASSWORD
+#   wrangler secret put VIEWER_PASSWORD
+#   wrangler secret put SESSION_SECRET
+
+OWNER_PASSWORD=change-me-owner-password
+VIEWER_PASSWORD=change-me-viewer-password
+SESSION_SECRET=change-me-to-a-long-random-string

@@ -22,6 +22,17 @@
 		}
 	]
 	/**
+	 * Buktu Listu session auth environment:
+	 * - OWNER_PASSWORD (secret)     – unlocks full edit access
+	 * - VIEWER_PASSWORD (secret)    – read-only access for friends
+	 * - SESSION_SECRET (secret)     – signs the session cookie (role cannot be forged)
+	 *
+	 * Set locally in `.dev.vars` (copy `.dev.vars.example`).
+	 * Set in production with `wrangler secret put <name>`.
+	 *
+	 * Do NOT put these values in this file or any committed config.
+	 */
+	/**
 	 * Smart Placement
 	 * https://developers.cloudflare.com/workers/configuration/smart-placement/#smart-placement
 	 */

@@ -4,14 +4,11 @@ const CREATE_FIELDS = new Set([
   "category",
   "priority",
   "target_date",
-  "ownerId",
 ]);
 
 const UPDATE_FIELDS = new Set([...CREATE_FIELDS, "completed"]);
 const VALID_PRIORITIES = new Set(["low", "medium", "high"]);
 const CATEGORY_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
-const FRIEND_ID_PATTERN = /^[a-z0-9-]{1,32}$/;
-const REACTION_FIELDS = new Set(["friendId", "active"]);
 
 export const ITEM_LIMITS = {
   title: 120,
@@ -103,15 +100,6 @@ function validatePriority(value, fields) {
   return value;
 }
 
-function validateOwnerId(value, fields) {
-  if (typeof value !== "string" || !FRIEND_ID_PATTERN.test(value)) {
-    fields.ownerId = "Owner must be a valid friend identifier";
-    return null;
-  }
-
-  return value;
-}
-
 function validateTargetDate(value, fields) {
   if (value === undefined || value === null || value === "") return null;
 
@@ -137,7 +125,6 @@ export function validateCreateItem(body) {
     category: validateCategory(body.category ?? "general", fields),
     priority: validatePriority(body.priority ?? "medium", fields),
     target_date: validateTargetDate(body.target_date, fields),
-    ownerId: validateOwnerId(body.ownerId, fields),
   };
 
   return { data, fields };
@@ -186,30 +173,6 @@ export function validateUpdateItem(body) {
 
   if (suppliedFields.length === 0) {
     fields.request = "At least one supported field must be updated";
-  }
-
-  return { data, fields };
-}
-
-export function validateReaction(body) {
-  const fields = {};
-  const data = {};
-  const unexpectedFields = findUnexpectedFields(body, REACTION_FIELDS);
-
-  if (unexpectedFields.length > 0) {
-    fields.request = `Unsupported fields: ${unexpectedFields.join(", ")}`;
-  }
-
-  if (typeof body.friendId !== "string" || !FRIEND_ID_PATTERN.test(body.friendId)) {
-    fields.friendId = "friendId must be a valid friend identifier";
-  } else {
-    data.friendId = body.friendId;
-  }
-
-  if (typeof body.active !== "boolean") {
-    fields.active = "active must be a boolean";
-  } else {
-    data.active = body.active;
   }
 
   return { data, fields };

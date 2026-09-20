@@ -1,10 +1,5 @@
-import {
-  createItem,
-  deleteItem,
-  getItems,
-  toggleReaction,
-  updateItem,
-} from "./handlers/items.js";
+import { getCurrentUser, login, logout, me } from "./handlers/auth.js";
+import { createItem, deleteItem, getItems, updateItem } from "./handlers/items.js";
 import { addApiHeaders, errorResponse } from "./utils/http.js";
 
 const WRITE_METHODS = new Set(["POST", "PATCH", "DELETE"]);
@@ -20,6 +15,22 @@ function methodNotAllowed(allowedMethods) {
   return response;
 }
 
+function unauthorized() {
+  return errorResponse(
+    "Authentication is required to view this list",
+    401,
+    "NOT_AUTHENTICATED",
+  );
+}
+
+function forbidden() {
+  return errorResponse(
+    "Only the list owner can make changes",
+    403,
+    "FORBIDDEN",
+  );
+}
+
 function hasValidOrigin(request, requestUrl) {
   const origin = request.headers.get("Origin");
 
@@ -32,25 +43,54 @@ function hasValidOrigin(request, requestUrl) {
   }
 }
 
+async function requireOwner(request, env) {
+  const user = await getCurrentUser(request, env);
+
+  if (!user) return unauthorized();
+  if (user.role !== "owner") return forbidden();
+
+  return null;
+}
+
 async function routeRequest(request, env, url) {
   if (url.pathname === "/api/health") {
     if (request.method !== "GET") return methodNotAllowed(["GET"]);
     return Response.json({ status: "ok" });
   }
 
-  if (url.pathname === "/api/items") {
-    if (request.method === "GET") return getItems(env);
-    if (request.method === "POST") return createItem(request, env);
-    return methodNotAllowed(["GET", "POST"]);
+  if (url.pathname === "/api/auth/me") {
+    if (request.method !== "GET") return methodNotAllowed(["GET"]);
+    return me(request, env);
   }
 
-  const reactionRoute = url.pathname.match(/^\/api\/items\/([1-9]\d*)\/reaction$/);
+  if (url.pathname === "/api/auth/logout") {
+    if (request.method !== "POST") return methodNotAllowed(["POST"]);
+    return logout(url);
+  }
 
-  if (reactionRoute) {
-    const itemId = Number(reactionRoute[1]);
+  if (url.pathname === "/api/auth") {
+    if (request.method !== "POST") return methodNotAllowed(["POST"]);
+    return login(request, env, url);
+  }
 
-    if (request.method === "PUT") return toggleReaction(request, env, itemId);
-    return methodNotAllowed(["PUT"]);
+  if (url.pathname === "/api/items") {
+    if (request.method === "GET") {
+      const user = await getCurrentUser(request, env);
+
+      if (!user) return unauthorized();
+
+      return getItems(env);
+    }
+
+    if (request.method === "POST") {
+      const denied = await requireOwner(request, env);
+
+      if (denied) return denied;
+
+      return createItem(request, env);
+    }
+
+    return methodNotAllowed(["GET", "POST"]);
   }
 
   const itemRoute = url.pathname.match(/^\/api\/items\/([1-9]\d*)$/);
@@ -58,8 +98,22 @@ async function routeRequest(request, env, url) {
   if (itemRoute) {
     const itemId = Number(itemRoute[1]);
 
-    if (request.method === "PATCH") return updateItem(request, env, itemId);
-    if (request.method === "DELETE") return deleteItem(env, itemId);
+    if (request.method === "PATCH") {
+      const denied = await requireOwner(request, env);
+
+      if (denied) return denied;
+
+      return updateItem(request, env, itemId);
+    }
+
+    if (request.method === "DELETE") {
+      const denied = await requireOwner(request, env);
+
+      if (denied) return denied;
+
+      return deleteItem(env, itemId);
+    }
+
     return methodNotAllowed(["PATCH", "DELETE"]);
   }
 
