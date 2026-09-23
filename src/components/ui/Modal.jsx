@@ -14,6 +14,9 @@ function Modal({ open, title, description, onClose, children, className = "" }) 
 
     if (open && !dialog.open) {
       dialog.showModal();
+      window.requestAnimationFrame(() => {
+        dialog.querySelector("[data-autofocus]")?.focus();
+      });
     } else if (!open && dialog.open) {
       dialog.close();
     }
@@ -40,6 +43,7 @@ function Modal({ open, title, description, onClose, children, className = "" }) 
       onClick={handleBackdropClick}
     >
       <div className="modal__surface">
+        <span className="modal__drag-handle" aria-hidden="true" />
         <header className="modal__header">
           <div>
             <p className="eyebrow">Bucket list</p>

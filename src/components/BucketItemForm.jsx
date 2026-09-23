@@ -78,6 +78,7 @@ function BucketItemForm({
             value={form.title}
             onChange={handleChange}
             placeholder="See the northern lights"
+            data-autofocus
             autoComplete="off"
             maxLength="120"
             aria-invalid={Boolean(fieldErrors.title)}

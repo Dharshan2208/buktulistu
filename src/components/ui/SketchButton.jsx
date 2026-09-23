@@ -51,6 +51,11 @@ function SketchButton({
     }
 
     function drawButton() {
+      if (window.matchMedia("(max-width: 600px)").matches) {
+        svg.replaceChildren();
+        return;
+      }
+
       const { width, height } = button.getBoundingClientRect();
 
       if (width <= 0 || height <= 0) {

@@ -16,6 +16,7 @@ import BucketItemForm from "./components/BucketItemForm";
 import BucketList from "./components/BucketList";
 import BucketStats from "./components/BucketStats";
 import Modal from "./components/ui/Modal";
+import MobileHeaderMenu from "./components/ui/MobileHeaderMenu";
 import SketchButton from "./components/ui/SketchButton";
 import SketchToast from "./components/ui/SketchToast";
 
@@ -61,6 +62,9 @@ function App() {
     document.documentElement.dataset.theme = theme;
     document.documentElement.style.colorScheme = theme;
     window.localStorage.setItem("buktu-theme", theme);
+    document
+      .querySelector('meta[name="theme-color"]')
+      ?.setAttribute("content", theme === "dark" ? "#181a17" : "#f5f1e8");
   }, [theme]);
 
   useEffect(() => {
@@ -146,7 +150,8 @@ function App() {
       return undefined;
     }
 
-    const timeout = window.setTimeout(() => setToast(""), 2800);
+    const isImportant = /couldn\u2019t|couldn't|expired|read-only/i.test(toast);
+    const timeout = window.setTimeout(() => setToast(""), isImportant ? 5200 : 3000);
     return () => window.clearTimeout(timeout);
   }, [toast]);
 
@@ -396,7 +401,7 @@ function App() {
           <span>Buktu Listu</span>
         </a>
 
-        <div className="header-actions">
+        <div className="header-actions desktop-header-actions">
           <nav className="site-nav" aria-label="Primary navigation">
             <a href="#progress">Progress</a>
             <a href="#list">My list</a>
@@ -450,6 +455,17 @@ function App() {
             </SketchButton>
           )}
         </div>
+
+        <MobileHeaderMenu
+          theme={theme}
+          role={session.role}
+          onToggleTheme={() =>
+            setTheme((currentTheme) =>
+              currentTheme === "dark" ? "light" : "dark",
+            )
+          }
+          onLogout={handleLogout}
+        />
       </header>
 
       <main id="top" className="app-main">
@@ -513,6 +529,17 @@ function App() {
       </main>
 
       {isOwner && (
+        <button
+          type="button"
+          className="mobile-add-button"
+          aria-label="Add a bucket-list item"
+          onClick={() => setIsCreateOpen(true)}
+        >
+          <span aria-hidden="true">＋</span>
+        </button>
+      )}
+
+      {isOwner && (
         <Modal
           open={isCreateOpen}
           title="Add to my bucket list"
@@ -530,7 +557,7 @@ function App() {
         </Modal>
       )}
 
-      <SketchToast message={toast} />
+      <SketchToast message={toast} onDismiss={() => setToast("")} />
     </div>
   );
 }

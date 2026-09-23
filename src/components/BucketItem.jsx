@@ -1,4 +1,4 @@
-import { useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { formatCategory } from "../categories";
 import BucketItemForm from "./BucketItemForm";
 import Modal from "./ui/Modal";
@@ -8,11 +8,33 @@ import SketchCard from "./ui/SketchCard";
 function BucketItem({ item, isOwner, onUpdate, onDelete }) {
   const generatedId = useId();
   const detailsId = `bucket-item-details-${generatedId}`;
+  const actionMenuRef = useRef(null);
   const [isEditing, setIsEditing] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [isBusy, setIsBusy] = useState(false);
   const [actionError, setActionError] = useState(null);
+
+  useEffect(() => {
+    function closeActionMenu(event) {
+      if (!actionMenuRef.current?.contains(event.target)) {
+        actionMenuRef.current?.removeAttribute("open");
+      }
+    }
+
+    document.addEventListener("pointerdown", closeActionMenu);
+    return () => document.removeEventListener("pointerdown", closeActionMenu);
+  }, []);
+
+  function openEdit() {
+    actionMenuRef.current?.removeAttribute("open");
+    setIsEditing(true);
+  }
+
+  function openDelete() {
+    actionMenuRef.current?.removeAttribute("open");
+    setIsDeleteOpen(true);
+  }
 
   async function handleToggleCompleted() {
     setIsBusy(true);
@@ -91,16 +113,18 @@ function BucketItem({ item, isOwner, onUpdate, onDelete }) {
             </span>
           )}
 
-          <span className="category-tag">{formatCategory(item.category)}</span>
+          <span className="category-tag category-tag--desktop">
+            {formatCategory(item.category)}
+          </span>
 
           {isOwner && (
-            <div className="bucket-card__actions">
+            <div className="bucket-card__actions bucket-card__actions--desktop">
               <button
                 type="button"
                 className="icon-button"
                 aria-label={`Edit ${item.title}`}
                 disabled={isBusy}
-                onClick={() => setIsEditing(true)}
+                onClick={openEdit}
               >
                 <svg viewBox="0 0 24 24" aria-hidden="true">
                   <path d="M4 20h4l11-11-4-4L4 16v4Z" />
@@ -112,7 +136,7 @@ function BucketItem({ item, isOwner, onUpdate, onDelete }) {
                 className="icon-button icon-button--danger"
                 aria-label={`Delete ${item.title}`}
                 disabled={isBusy}
-                onClick={() => setIsDeleteOpen(true)}
+                onClick={openDelete}
               >
                 <svg viewBox="0 0 24 24" aria-hidden="true">
                   <path d="M4 7h16" />
@@ -122,6 +146,27 @@ function BucketItem({ item, isOwner, onUpdate, onDelete }) {
                 </svg>
               </button>
             </div>
+          )}
+
+          {isOwner && (
+            <details ref={actionMenuRef} className="card-action-menu">
+              <summary aria-label={`Open actions for ${item.title}`}>
+                <span aria-hidden="true">•••</span>
+              </summary>
+              <div className="card-action-menu__panel">
+                <button type="button" disabled={isBusy} onClick={openEdit}>
+                  Edit dream
+                </button>
+                <button
+                  type="button"
+                  className="is-danger"
+                  disabled={isBusy}
+                  onClick={openDelete}
+                >
+                  Delete dream
+                </button>
+              </div>
+            </details>
           )}
         </div>
 
@@ -143,6 +188,9 @@ function BucketItem({ item, isOwner, onUpdate, onDelete }) {
                   </svg>
                 </button>
               </h3>
+              <span className="category-tag category-tag--mobile">
+                {formatCategory(item.category)}
+              </span>
               <div
                 id={detailsId}
                 className="bucket-card__details"
@@ -152,7 +200,12 @@ function BucketItem({ item, isOwner, onUpdate, onDelete }) {
               </div>
             </>
           ) : (
-            <h3 className="bucket-card__title">{item.title}</h3>
+            <>
+              <h3 className="bucket-card__title">{item.title}</h3>
+              <span className="category-tag category-tag--mobile">
+                {formatCategory(item.category)}
+              </span>
+            </>
           )}
         </div>
 

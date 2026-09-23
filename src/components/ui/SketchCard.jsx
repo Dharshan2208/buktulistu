@@ -7,6 +7,7 @@ const CARD_COLORS = {
   green: "#dcfce7",
   blue: "#dbeafe",
   gray: "#f3f4f6",
+  red: "#fee2e2",
 };
 
 const DARK_CARD_COLORS = {
@@ -15,6 +16,7 @@ const DARK_CARD_COLORS = {
   green: "#203b2b",
   blue: "#202f3d",
   gray: "#2c2e29",
+  red: "#4a2c2a",
 };
 
 function roundedRectanglePath(x, y, width, height, radius) {
@@ -54,6 +56,11 @@ function SketchCard({
     }
 
     function drawCard() {
+      if (window.matchMedia("(max-width: 600px)").matches) {
+        svg.replaceChildren();
+        return;
+      }
+
       const { width, height } = wrapper.getBoundingClientRect();
 
       if (width <= 0 || height <= 0) {
@@ -102,7 +109,10 @@ function SketchCard({
   }, [dashed, seed, variant]);
 
   return (
-    <div ref={wrapperRef} className={`sketch-card ${className}`.trim()}>
+    <div
+      ref={wrapperRef}
+      className={`sketch-card sketch-card--${variant} ${className}`.trim()}
+    >
       <svg ref={svgRef} className="sketch-card__canvas" aria-hidden="true" />
       <div className={`sketch-card__content ${contentClassName}`.trim()}>
         {children}
