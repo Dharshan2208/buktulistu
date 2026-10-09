@@ -16,7 +16,12 @@ function SketchToast({ message, onDismiss }) {
           {message}
         </p>
         {isError && (
-          <button type="button" aria-label="Dismiss message" onClick={onDismiss}>
+          <button
+            type="button"
+            className="ghost toast-dismiss"
+            aria-label="Dismiss message"
+            onClick={onDismiss}
+          >
             ×
           </button>
         )}

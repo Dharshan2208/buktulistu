@@ -388,11 +388,6 @@ function App() {
         </a>
 
         <div className="header-actions desktop-header-actions">
-          <nav className="site-nav" aria-label="Primary navigation">
-            <a href="#progress">Progress</a>
-            <a href="#list">My list</a>
-          </nav>
-
           <button
             type="button"
             className="ghost"

@@ -3,15 +3,15 @@
 :root {
   color-scheme: dark;
 
-  /* Pure dark neutrals: pitch-black background, high-contrast text. */
+  /* Soft dark neutrals: pitch-black background, greyish-white text. */
   --background: #0a0a0a;
-  --foreground: #f5f5f5;
+  --foreground: #d4d4d8;
   --card: #111111;
-  --card-foreground: #f5f5f5;
-  --primary: #f5f5f5;
+  --card-foreground: #d4d4d8;
+  --primary: #d4d4d8;
   --primary-foreground: #0a0a0a;
   --secondary: #1c1c1e;
-  --secondary-foreground: #f5f5f5;
+  --secondary-foreground: #d4d4d8;
   --muted: #1c1c1e;
   --muted-foreground: #a1a1aa;
   --faint: #141414;
@@ -33,7 +33,7 @@ body {
   min-width: 320px;
   min-height: 100vh;
   background: #0a0a0a;
-  color: #f5f5f5;
+  color: #d4d4d8;
 }
 
 .sr-only {
@@ -87,23 +87,6 @@ body {
   gap: 1rem;
 }
 
-.site-nav {
-  display: flex;
-  gap: 0.25rem;
-}
-
-.site-nav a {
-  color: var(--muted-foreground);
-  padding: 0.5rem 0.65rem;
-  border-radius: var(--radius-medium);
-  text-decoration: none;
-}
-
-.site-nav a:hover {
-  color: var(--foreground);
-  background: var(--muted);
-}
-
 .intro {
   max-width: 640px;
   margin-bottom: 2rem;
@@ -135,6 +118,31 @@ body {
   margin-bottom: 1rem;
 }
 
+/* Compact progress summary: narrow bar with count on its right. */
+.progress-summary {
+  max-width: 380px;
+  padding: var(--space-4);
+  margin-bottom: 1.5rem;
+}
+
+.progress-summary__meter {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.progress-summary__meter progress {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 280px;
+  margin: 0;
+}
+
+.progress-summary__meter .badge {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
 /* Lists + cards use Oat's .card natively; these are layout helpers. */
 .bucket-grid {
   display: grid;
@@ -156,10 +164,11 @@ body {
 }
 
 .filters__controls {
+  --control-height: 2.5rem;
   display: grid;
-  grid-template-columns: minmax(220px, 1fr) auto auto;
+  grid-template-columns: minmax(200px, 1.4fr) auto minmax(280px, 1fr);
   gap: 0.75rem;
-  align-items: center;
+  align-items: stretch;
 }
 
 .filters__meta {
@@ -176,8 +185,12 @@ body {
   font-size: var(--text-7);
 }
 
+/* Search: flex container so icon and input share the same height. */
 .search-field {
   position: relative;
+  display: flex;
+  align-items: stretch;
+  min-height: var(--control-height);
 }
 
 .search-field__icon {
@@ -187,16 +200,166 @@ body {
   transform: translateY(-50%);
   color: var(--muted-foreground);
   pointer-events: none;
+  line-height: 1;
 }
 
 .search-field input {
+  margin-block-start: 0;
+  height: var(--control-height);
   padding-left: 2.25rem;
 }
 
+/* Status tabs: fixed height row, vertically centered. */
+.filter-tabs {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--control-height);
+  align-self: stretch;
+}
+
+.filter-tabs [role="tab"] {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: var(--control-height);
+}
+
+.filter-tabs .badge {
+  padding: 0.1rem 0.5rem;
+  line-height: 1.2;
+}
+
+/* Category + Sort dropdowns: equal-height grid, no label offset. */
 .filter-selects {
   display: grid;
-  grid-template-columns: repeat(2, minmax(140px, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.5rem;
+  align-items: stretch;
+}
+
+.filter-menu-field {
+  min-width: 0;
+  display: flex;
+  align-items: stretch;
+}
+
+.filter-menu {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: stretch;
+  margin: 0;
+  overflow: visible;
+}
+
+.filter-menu[open] {
+  overflow: visible;
+}
+
+.filter-menu > summary {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  min-height: var(--control-height);
+  padding: 0 var(--space-4);
+  font-size: var(--text-7);
+  list-style: none;
+}
+
+.filter-menu > summary > span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin: 0;
+}
+
+.filter-menu__options {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 50;
+  min-width: 100%;
+  max-height: 280px;
+  overflow-y: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  padding: var(--space-1);
+  margin: 0;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-medium);
+  box-shadow: var(--shadow-medium);
+}
+
+.filter-menu__options::-webkit-scrollbar {
+  display: none;
+}
+
+.filter-menu__options button {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  min-height: 2.25rem;
+  padding: 0.4rem 0.6rem;
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-small);
+  color: var(--foreground);
+  font-size: var(--text-7);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.filter-menu__options button:hover {
+  background: var(--muted);
+}
+
+.filter-menu__options button.is-selected {
+  background: var(--muted);
+  font-weight: 600;
+}
+
+/* Mobile filter sheet (inside dialog): simple stacked choice buttons. */
+.filter-sheet__group + .filter-sheet__group {
+  margin-top: 1rem;
+}
+
+.filter-sheet__group h3 {
+  font-size: var(--text-8);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+  margin-bottom: 0.5rem;
+}
+
+.filter-sheet__choices {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.5rem;
+}
+
+.filter-sheet__choices button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  min-height: 2.75rem;
+  padding: 0.5rem 0.75rem;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-medium);
+  color: var(--foreground);
+  font-size: var(--text-7);
+  text-align: left;
+}
+
+.filter-sheet__choices button.is-selected {
+  border-color: var(--ring);
+  background: var(--muted);
+  font-weight: 600;
 }
 
 .bucket-card__topline {
@@ -204,6 +367,37 @@ body {
   align-items: center;
   gap: 0.5rem;
   margin-bottom: 0.75rem;
+}
+
+/* Done / not-done toggle: always a fixed square, empty or checked. */
+.completion-toggle,
+.completion-indicator {
+  width: 1.75rem;
+  height: 1.75rem;
+  flex: 0 0 1.75rem;
+  aspect-ratio: 1 / 1;
+  display: inline-grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-medium);
+  background: transparent;
+  color: var(--foreground);
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.completion-toggle {
+  cursor: pointer;
+}
+
+.completion-toggle span,
+.completion-indicator span {
+  display: inline-grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  line-height: 1;
 }
 
 .bucket-card__actions {
@@ -228,6 +422,38 @@ body {
   margin: 0;
   padding: 0;
   border: 0;
+}
+
+/* Modal close: large, easy-to-tap square. */
+.modal-close {
+  width: 2.5rem;
+  height: 2.5rem;
+  flex: 0 0 2.5rem;
+  padding: 0;
+  font-size: 1.4rem;
+  line-height: 1;
+}
+
+.modal-close:hover {
+  color: var(--danger);
+  border-color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 15%, transparent);
+}
+
+.modal-close:active {
+  color: var(--danger);
+  border-color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 28%, transparent);
+}
+
+/* Form + confirm actions: separated from fields, spaced buttons. */
+.form-actions,
+.confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
 }
 
 .gate-shell {
@@ -255,8 +481,35 @@ body {
   position: fixed;
   right: 1rem;
   bottom: 1rem;
-  width: min(340px, calc(100% - 2rem));
+  width: min(300px, calc(100% - 2rem));
   z-index: 60;
+}
+
+/* Compact toast: small padding, no paragraph gap, aligned dismiss. */
+.toast-card {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.7rem 0.85rem;
+}
+
+.toast-card p {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  font-size: var(--text-7);
+  line-height: 1.45;
+}
+
+.toast-dismiss {
+  flex: 0 0 2rem;
+  width: 2rem;
+  height: 2rem;
+  display: inline-grid;
+  place-items: center;
+  padding: 0;
+  font-size: 1.2rem;
+  line-height: 1;
 }
 
 .mobile-add-button,
@@ -280,7 +533,6 @@ body {
 }
 
 @media (max-width: 600px) {
-  .site-nav,
   .desktop-header-actions {
     display: none;
   }
@@ -293,6 +545,7 @@ body {
   .mobile-filter-trigger {
     display: flex;
     width: 100%;
+    min-height: var(--control-height);
     align-items: center;
     justify-content: center;
     gap: 0.5rem;

@@ -46,7 +46,7 @@ function BucketFilters({
           />
         </div>
 
-        <div role="tablist" aria-label="Filter by status">
+        <div className="filter-tabs" role="tablist" aria-label="Filter by status">
           {[
             ["all", "All", statusCounts.all],
             ["active", "To Do", statusCounts.active],

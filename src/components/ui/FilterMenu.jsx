@@ -36,13 +36,10 @@ function FilterMenu({ label, value, options, onChange }) {
 
   return (
     <div className="filter-menu-field">
-      <span className="filter-menu-field__label">{label}</span>
+      <span className="sr-only">{label}</span>
       <details ref={detailsRef} className="filter-menu">
         <summary>
           <span>{selectedOption.label}</span>
-          <span className="filter-menu__arrow" aria-hidden="true">
-            ↓
-          </span>
         </summary>
 
         <div className="filter-menu__options" role="group" aria-label={label}>

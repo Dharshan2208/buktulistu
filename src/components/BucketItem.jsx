@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from "react";
+import { useId, useState } from "react";
 import { formatCategory } from "../categories";
 import BucketItemForm from "./BucketItemForm";
 import Modal from "./ui/Modal";
@@ -8,31 +8,17 @@ import SketchCard from "./ui/SketchCard";
 function BucketItem({ item, isOwner, onUpdate, onDelete }) {
   const generatedId = useId();
   const detailsId = `bucket-item-details-${generatedId}`;
-  const actionMenuRef = useRef(null);
   const [isEditing, setIsEditing] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [isBusy, setIsBusy] = useState(false);
   const [actionError, setActionError] = useState(null);
 
-  useEffect(() => {
-    function closeActionMenu(event) {
-      if (!actionMenuRef.current?.contains(event.target)) {
-        actionMenuRef.current?.removeAttribute("open");
-      }
-    }
-
-    document.addEventListener("pointerdown", closeActionMenu);
-    return () => document.removeEventListener("pointerdown", closeActionMenu);
-  }, []);
-
   function openEdit() {
-    actionMenuRef.current?.removeAttribute("open");
     setIsEditing(true);
   }
 
   function openDelete() {
-    actionMenuRef.current?.removeAttribute("open");
     setIsDeleteOpen(true);
   }
 
@@ -140,27 +126,6 @@ function BucketItem({ item, isOwner, onUpdate, onDelete }) {
               </button>
             </div>
           )}
-
-          {isOwner && (
-            <details ref={actionMenuRef} className="card-action-menu">
-              <summary aria-label={`Open actions for ${item.title}`}>
-                <span aria-hidden="true">•••</span>
-              </summary>
-              <div className="card-action-menu__panel">
-                <button type="button" disabled={isBusy} onClick={openEdit}>
-                  Edit dream
-                </button>
-                <button
-                  type="button"
-                  className="is-danger"
-                  disabled={isBusy}
-                  onClick={openDelete}
-                >
-                  Delete dream
-                </button>
-              </div>
-            </details>
-          )}
         </div>
 
         <div className="bucket-card__body">
@@ -181,9 +146,6 @@ function BucketItem({ item, isOwner, onUpdate, onDelete }) {
                   </svg>
                 </button>
               </h3>
-              <span className="badge outline category-tag--mobile">
-                {formatCategory(item.category)}
-              </span>
               <div
                 id={detailsId}
                 className="bucket-card__details"
@@ -195,9 +157,6 @@ function BucketItem({ item, isOwner, onUpdate, onDelete }) {
           ) : (
             <>
               <h3 className="bucket-card__title">{item.title}</h3>
-              <span className="badge outline category-tag--mobile">
-                {formatCategory(item.category)}
-              </span>
             </>
           )}
         </div>

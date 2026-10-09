@@ -47,7 +47,7 @@ function Modal({ open, title, description, onClose, children, className = "" }) 
           <h2 id={titleId}>{title}</h2>
           <button
             type="button"
-            className="ghost small"
+            className="ghost icon modal-close"
             aria-label="Close dialog"
             onClick={onClose}
           >

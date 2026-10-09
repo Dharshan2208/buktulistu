@@ -6,10 +6,6 @@ function BucketStats({ items }) {
 
   return (
     <SketchCard className="progress-summary" variant="paper" seed={91}>
-      <div className="progress-summary__copy">
-        <p className="eyebrow">Your progress</p>
-      </div>
-
       <div className="progress-summary__meter">
         <progress
           value={completed}
