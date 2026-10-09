@@ -16,7 +16,6 @@ import BucketItemForm from "./components/BucketItemForm";
 import BucketList from "./components/BucketList";
 import BucketStats from "./components/BucketStats";
 import Modal from "./components/ui/Modal";
-import MobileHeaderMenu from "./components/ui/MobileHeaderMenu";
 import SketchButton from "./components/ui/SketchButton";
 import SketchToast from "./components/ui/SketchToast";
 
@@ -409,7 +408,48 @@ function App() {
           )}
         </div>
 
-        <MobileHeaderMenu role={session.role} onLogout={handleLogout} />
+        <div className="header-actions mobile-header-actions">
+          <button
+            type="button"
+            className="ghost icon mobile-icon-btn"
+            aria-label="Sign out and lock this list"
+            title="Sign out and lock this list"
+            onClick={handleLogout}
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              aria-hidden="true"
+            >
+              <rect x="5" y="11" width="14" height="9" rx="2" />
+              <path d="M8 11V8a4 4 0 0 1 8 0v3" />
+            </svg>
+          </button>
+
+          {isOwner && (
+            <button
+              type="button"
+              className="ghost icon mobile-icon-btn"
+              aria-label="Add a bucket-list item"
+              title="Add a bucket-list item"
+              onClick={() => setIsCreateOpen(true)}
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                aria-hidden="true"
+              >
+                <path d="M12 5v14M5 12h14" />
+              </svg>
+            </button>
+          )}
+        </div>
       </header>
 
       <main id="top" className="app-main">
@@ -471,17 +511,6 @@ function App() {
           />
         </section>
       </main>
-
-      {isOwner && (
-        <button
-          type="button"
-          className="mobile-add-button"
-          aria-label="Add a bucket-list item"
-          onClick={() => setIsCreateOpen(true)}
-        >
-          <span aria-hidden="true">＋</span>
-        </button>
-      )}
 
       {isOwner && (
         <Modal

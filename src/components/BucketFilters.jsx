@@ -32,7 +32,16 @@ function BucketFilters({
       <div className="filters__controls">
         <div className="search-field">
           <span className="search-field__icon" aria-hidden="true">
-            ⌕
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+            >
+              <circle cx="11" cy="11" r="7" />
+              <path d="m20 20-3.5-3.5" />
+            </svg>
           </span>
           <label className="sr-only" htmlFor="item-search">
             Search bucket-list items
@@ -102,7 +111,18 @@ function BucketFilters({
               {advancedFilterCount}
             </span>
           )}
-          <span aria-hidden="true">⌄</span>
+          <span className="mobile-filter-trigger__arrow" aria-hidden="true">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="m6 9 6 6 6-6" />
+            </svg>
+          </span>
         </button>
       </div>
 
