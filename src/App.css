@@ -53,7 +53,7 @@ body {
 }
 
 .app-main {
-  width: min(1100px, calc(100% - 2rem));
+  width: calc(100% - 8rem);
   margin: 0 auto;
   padding: 2.5rem 0 4rem;
 }
@@ -67,7 +67,7 @@ body {
   justify-content: space-between;
   gap: 1rem;
   min-height: 60px;
-  padding: 0.6rem 1rem;
+  padding: 0.6rem 4rem;
   background: #0a0a0a;
   border-bottom: 1px solid var(--border);
 }
@@ -146,7 +146,7 @@ body {
 /* Lists + cards use Oat's .card natively; these are layout helpers. */
 .bucket-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 1rem;
   margin: 0;
   padding: 0;
@@ -249,11 +249,16 @@ body {
   display: none;
 }
 
-/* Status tabs: fixed height row, vertically centered. */
+/* Status tabs: same outer height as search + dropdowns (Oat's tablist
+   padding is removed here so it doesn't add 8px extra height). */
 .filter-tabs {
   display: inline-flex;
   align-items: center;
+  gap: 0.25rem;
   min-height: var(--control-height);
+  padding: 0;
+  background: transparent;
+  border: 1px solid transparent;
   align-self: stretch;
 }
 
@@ -261,7 +266,7 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  min-height: var(--control-height);
+  min-height: calc(var(--control-height) - 2px);
 }
 
 .filter-tabs .badge {
@@ -300,7 +305,7 @@ body {
   flex: 1;
   display: flex;
   align-items: center;
-  min-height: var(--control-height);
+  min-height: calc(var(--control-height) - 2px);
   padding: 0 var(--space-4);
   font-size: var(--text-7);
   list-style: none;
@@ -452,9 +457,68 @@ body {
   border-top: 1px solid var(--border);
 }
 
+/* Title stays dominant; details are secondary. */
+.bucket-card__title {
+  margin: 0;
+  color: var(--foreground);
+  font-size: 1rem;
+  line-height: 1.4;
+}
+
+.bucket-card__details p {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+  line-height: 1.55;
+}
+
+/* Expandable title: full-width row, hover state, rotating chevron. */
+.bucket-card__summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  width: 100%;
+  padding: 0.35rem 0.5rem;
+  margin: 0 -0.5rem;
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-small);
+  color: var(--foreground);
+  font: inherit;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.bucket-card__summary:hover {
+  background: var(--muted);
+}
+
+.bucket-card__summary > span:first-child {
+  min-width: 0;
+}
+
+.bucket-card__summary svg {
+  width: 1rem;
+  height: 1rem;
+  flex: 0 0 1rem;
+  transition: transform var(--transition-fast);
+}
+
+.is-expanded .bucket-card__summary svg {
+  transform: rotate(180deg);
+}
+
+/* Completed items recede: muted, ~50% opacity. To-dos stay full contrast. */
+.is-completed .bucket-card {
+  opacity: 0.55;
+}
+
 .is-completed h3,
 .is-completed .bucket-card__summary,
 .is-completed .bucket-card__summary span {
+  color: var(--muted-foreground);
   text-decoration: line-through;
   text-decoration-thickness: 1px;
 }
@@ -581,6 +645,14 @@ body {
 }
 
 @media (max-width: 600px) {
+  .site-header {
+    padding: 0.6rem 1rem;
+  }
+
+  .app-main {
+    width: calc(100% - 2rem);
+  }
+
   .desktop-header-actions {
     display: none;
   }
@@ -627,7 +699,7 @@ body {
   }
 
   .bucket-grid .bucket-card__topline {
-    margin-bottom: 0.35rem;
+    margin-bottom: 0.6rem;
   }
 
   .bucket-grid .bucket-card__body h3 {

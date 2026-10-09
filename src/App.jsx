@@ -474,7 +474,6 @@ function App() {
         >
           <div className="section-heading">
             <div>
-              <p className="eyebrow">The list</p>
               <h2 id="list-heading">Dreams worth chasing</h2>
             </div>
             <span className="badge outline">

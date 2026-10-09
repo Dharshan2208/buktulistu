@@ -59,10 +59,6 @@ function AccessGate({ notice, onLogin }) {
         <div className="gate-card__content">
           <p className="eyebrow">Life In Progress</p>
           <h1>Things to do before I die</h1>
-          <p className="gate-card__lead">
-            One person&apos;s bucket list. Enter the shared password to look
-            around — it&apos;s view-only for everyone except the owner.
-          </p>
 
           {notice && (
             <p className="gate-notice" role="status">
@@ -102,11 +98,6 @@ function AccessGate({ notice, onLogin }) {
               </p>
             )}
           </form>
-
-          <p className="gate-card__footnote">
-            One list, one owner. Friends who share the password can look but
-            can&apos;t edit.
-          </p>
         </div>
       </SketchCard>
     </div>
