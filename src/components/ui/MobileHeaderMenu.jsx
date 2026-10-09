@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 
-function MobileHeaderMenu({ theme, role, onToggleTheme, onLogout }) {
+function MobileHeaderMenu({ role, onLogout }) {
   const menuRef = useRef(null);
 
   useEffect(() => {
@@ -33,24 +33,13 @@ function MobileHeaderMenu({ theme, role, onToggleTheme, onLogout }) {
 
   return (
     <details ref={menuRef} className="mobile-header-menu">
-      <summary aria-label="Open account and appearance menu">
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <circle cx="5" cy="12" r="1.4" />
-          <circle cx="12" cy="12" r="1.4" />
-          <circle cx="19" cy="12" r="1.4" />
-        </svg>
-      </summary>
+      <summary aria-label="Open account menu">···</summary>
       <div className="mobile-header-menu__panel">
-        <p className="mobile-header-menu__role">
+        <p className="text-light">
           {role === "owner" ? "Owner · editing" : "Viewer · read only"}
         </p>
-        <button type="button" onClick={() => runAction(onToggleTheme)}>
-          <span>{theme === "dark" ? "Light mode" : "Dark mode"}</span>
-          <span aria-hidden="true">{theme === "dark" ? "☀" : "☾"}</span>
-        </button>
         <button type="button" onClick={() => runAction(onLogout)}>
-          <span>Lock and sign out</span>
-          <span aria-hidden="true">⌁</span>
+          Lock and sign out
         </button>
       </div>
     </details>

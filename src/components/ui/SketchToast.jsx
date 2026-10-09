@@ -1,5 +1,3 @@
-import SketchCard from "./SketchCard";
-
 function SketchToast({ message, onDismiss }) {
   if (!message) {
     return null;
@@ -9,20 +7,20 @@ function SketchToast({ message, onDismiss }) {
 
   return (
     <div className="toast-region" aria-live="polite" aria-atomic="true">
-      <SketchCard
-        variant={isError ? "red" : "green"}
-        seed={303}
-        className={`toast-card ${isError ? "toast-card--error" : ""}`}
+      <div
+        role="alert"
+        data-variant={isError ? "danger" : "success"}
+        className="toast-card"
       >
         <p role="status">
-          <span aria-hidden="true">{isError ? "!" : "✓"}</span> {message}
+          {message}
         </p>
         {isError && (
           <button type="button" aria-label="Dismiss message" onClick={onDismiss}>
             ×
           </button>
         )}
-      </SketchCard>
+      </div>
     </div>
   );
 }

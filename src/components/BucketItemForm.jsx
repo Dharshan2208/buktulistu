@@ -120,8 +120,7 @@ function BucketItemForm({
 
         <div className="form-field form-field--wide">
           <label htmlFor={`${idPrefix}-category`}>Category</label>
-          <div className="category-select">
-            <select
+          <select
               id={`${idPrefix}-category`}
               name="category"
               value={form.category}
@@ -139,10 +138,6 @@ function BucketItemForm({
                 </option>
               ))}
             </select>
-            <span className="category-select__arrow" aria-hidden="true">
-              ▾
-            </span>
-          </div>
           {fieldErrors.category && (
             <p id={`${idPrefix}-category-error`} className="field-error">
               {fieldErrors.category}
@@ -159,7 +154,7 @@ function BucketItemForm({
 
       <div className="form-actions">
         {onCancel && (
-          <button type="button" className="text-button" onClick={onCancel}>
+          <button type="button" className="ghost" onClick={onCancel}>
             Cancel
           </button>
         )}

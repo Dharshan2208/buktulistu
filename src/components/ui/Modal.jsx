@@ -36,33 +36,28 @@ function Modal({ open, title, description, onClose, children, className = "" }) 
   return (
     <dialog
       ref={dialogRef}
-      className={`modal ${className}`.trim()}
+      className={className}
       aria-labelledby={titleId}
       aria-describedby={description ? descriptionId : undefined}
       onCancel={handleCancel}
       onClick={handleBackdropClick}
     >
-      <div className="modal__surface">
-        <span className="modal__drag-handle" aria-hidden="true" />
-        <header className="modal__header">
-          <div>
-            <p className="eyebrow">Bucket list</p>
-            <h2 id={titleId}>{title}</h2>
-            {description && <p id={descriptionId}>{description}</p>}
-          </div>
-
+      <header>
+        <div className="flex justify-between items-center">
+          <h2 id={titleId}>{title}</h2>
           <button
             type="button"
-            className="icon-button"
+            className="ghost small"
             aria-label="Close dialog"
             onClick={onClose}
           >
             ×
           </button>
-        </header>
+        </div>
+        {description && <p id={descriptionId}>{description}</p>}
+      </header>
 
-        {children}
-      </div>
+      <div>{children}</div>
     </dialog>
   );
 }

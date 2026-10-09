@@ -3,7 +3,6 @@ import SketchCard from "./ui/SketchCard";
 function BucketStats({ items }) {
   const total = items.length;
   const completed = items.filter((item) => item.completed).length;
-  const completionPercentage = total ? (completed / total) * 100 : 0;
 
   return (
     <SketchCard className="progress-summary" variant="paper" seed={91}>
@@ -12,23 +11,12 @@ function BucketStats({ items }) {
       </div>
 
       <div className="progress-summary__meter">
-        <div
-          className="sketch-progress"
-          role="progressbar"
+        <progress
+          value={completed}
+          max={total}
           aria-label={`${completed} of ${total} bucket-list items completed`}
-          aria-valuemin="0"
-          aria-valuemax={total}
-          aria-valuenow={completed}
-        >
-          <span
-            className="sketch-progress__fill"
-            style={{
-              width: `${completionPercentage}%`,
-              opacity: completed === 0 ? 0 : 1,
-            }}
-          />
-        </div>
-        <span className="progress-summary__count" aria-hidden="true">
+        />
+        <span className="badge outline" aria-hidden="true">
           {completed}/{total}
         </span>
       </div>

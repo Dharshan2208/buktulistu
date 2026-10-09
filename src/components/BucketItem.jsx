@@ -113,7 +113,7 @@ function BucketItem({ item, isOwner, onUpdate, onDelete }) {
             </span>
           )}
 
-          <span className="category-tag category-tag--desktop">
+          <span className="badge outline category-tag--desktop">
             {formatCategory(item.category)}
           </span>
 
@@ -121,29 +121,22 @@ function BucketItem({ item, isOwner, onUpdate, onDelete }) {
             <div className="bucket-card__actions bucket-card__actions--desktop">
               <button
                 type="button"
-                className="icon-button"
+                className="ghost small"
                 aria-label={`Edit ${item.title}`}
                 disabled={isBusy}
                 onClick={openEdit}
               >
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M4 20h4l11-11-4-4L4 16v4Z" />
-                  <path d="m13.5 6.5 4 4" />
-                </svg>
+                Edit
               </button>
               <button
                 type="button"
-                className="icon-button icon-button--danger"
+                className="ghost small"
+                data-variant="danger"
                 aria-label={`Delete ${item.title}`}
                 disabled={isBusy}
                 onClick={openDelete}
               >
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M4 7h16" />
-                  <path d="M9 7V4h6v3" />
-                  <path d="m6 7 1 13h10l1-13" />
-                  <path d="M10 11v5M14 11v5" />
-                </svg>
+                Delete
               </button>
             </div>
           )}
@@ -188,7 +181,7 @@ function BucketItem({ item, isOwner, onUpdate, onDelete }) {
                   </svg>
                 </button>
               </h3>
-              <span className="category-tag category-tag--mobile">
+              <span className="badge outline category-tag--mobile">
                 {formatCategory(item.category)}
               </span>
               <div
@@ -202,7 +195,7 @@ function BucketItem({ item, isOwner, onUpdate, onDelete }) {
           ) : (
             <>
               <h3 className="bucket-card__title">{item.title}</h3>
-              <span className="category-tag category-tag--mobile">
+              <span className="badge outline category-tag--mobile">
                 {formatCategory(item.category)}
               </span>
             </>
@@ -248,7 +241,7 @@ function BucketItem({ item, isOwner, onUpdate, onDelete }) {
             <div className="confirm-actions">
               <button
                 type="button"
-                className="text-button"
+                className="ghost"
                 disabled={isBusy}
                 onClick={() => setIsDeleteOpen(false)}
               >

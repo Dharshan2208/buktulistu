@@ -6,11 +6,9 @@ function LoadingCards() {
   return (
     <div className="bucket-grid" aria-label="Loading bucket-list items">
       {[1, 2, 3, 4].map((item) => (
-        <div className="skeleton-card" key={item} aria-hidden="true">
-          <div className="skeleton skeleton--tag" />
-          <div className="skeleton skeleton--title" />
-          <div className="skeleton skeleton--line" />
-          <div className="skeleton skeleton--line-short" />
+        <div className="card" key={item} role="status" aria-hidden="true">
+          <div className="skeleton line" />
+          <div className="skeleton line" />
         </div>
       ))}
       <span className="sr-only">Loading your bucket list…</span>

@@ -46,7 +46,7 @@ function BucketFilters({
           />
         </div>
 
-        <div className="status-tabs" aria-label="Filter by status">
+        <div role="tablist" aria-label="Filter by status">
           {[
             ["all", "All", statusCounts.all],
             ["active", "To Do", statusCounts.active],
@@ -55,12 +55,12 @@ function BucketFilters({
             <button
               key={value}
               type="button"
-              className={statusFilter === value ? "is-active" : ""}
-              aria-pressed={statusFilter === value}
+              role="tab"
+              aria-selected={statusFilter === value}
               onClick={() => onStatusChange(value)}
             >
               <span>{label}</span>
-              <span className="status-tabs__count">{count}</span>
+              <span className="badge outline">{count}</span>
             </button>
           ))}
         </div>
@@ -113,7 +113,7 @@ function BucketFilters({
             : `${visibleCount} of ${totalCount} dreams shown`}
         </p>
         {hasActiveFilters && (
-          <button type="button" className="text-button" onClick={onClear}>
+          <button type="button" className="ghost small" onClick={onClear}>
             Clear filters
           </button>
         )}
@@ -175,7 +175,7 @@ function BucketFilters({
         <div className="filter-sheet__actions">
           <button
             type="button"
-            className="text-button"
+            className="ghost"
             disabled={!hasActiveFilters}
             onClick={onClear}
           >
@@ -183,7 +183,6 @@ function BucketFilters({
           </button>
           <button
             type="button"
-            className="filter-sheet__done"
             onClick={() => setIsFilterSheetOpen(false)}
           >
             Show {visibleCount} {visibleCount === 1 ? "dream" : "dreams"}

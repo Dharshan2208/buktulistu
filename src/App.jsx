@@ -29,18 +29,6 @@ function normalizeItem(item) {
   };
 }
 
-function getInitialTheme() {
-  const savedTheme = window.localStorage.getItem("buktu-theme");
-
-  if (savedTheme === "light" || savedTheme === "dark") {
-    return savedTheme;
-  }
-
-  return window.matchMedia("(prefers-color-scheme: dark)").matches
-    ? "dark"
-    : "light";
-}
-
 function App() {
   const [session, setSession] = useState({ status: "checking" });
   const [items, setItems] = useState([]);
@@ -48,7 +36,6 @@ function App() {
   const [loadError, setLoadError] = useState(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [toast, setToast] = useState("");
-  const [theme, setTheme] = useState(getInitialTheme);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -59,13 +46,12 @@ function App() {
   const isOwner = isAuthenticated && session.role === "owner";
 
   useEffect(() => {
-    document.documentElement.dataset.theme = theme;
-    document.documentElement.style.colorScheme = theme;
-    window.localStorage.setItem("buktu-theme", theme);
+    document.documentElement.dataset.theme = "dark";
+    document.documentElement.style.colorScheme = "dark";
     document
       .querySelector('meta[name="theme-color"]')
-      ?.setAttribute("content", theme === "dark" ? "#181a17" : "#f5f1e8");
-  }, [theme]);
+      ?.setAttribute("content", "#0a0a0a");
+  }, []);
 
   useEffect(() => {
     let ignore = false;
@@ -409,40 +395,12 @@ function App() {
 
           <button
             type="button"
-            className="theme-toggle"
-            aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
-            aria-pressed={theme === "dark"}
-            title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
-            onClick={() =>
-              setTheme((currentTheme) =>
-                currentTheme === "dark" ? "light" : "dark",
-              )
-            }
-          >
-            {theme === "dark" ? (
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <circle cx="12" cy="12" r="4" />
-                <path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.66 6.34l1.41-1.41" />
-              </svg>
-            ) : (
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M20.4 15.3A8.5 8.5 0 0 1 8.7 3.6 8.5 8.5 0 1 0 20.4 15.3Z" />
-              </svg>
-            )}
-          </button>
-
-          <button
-            type="button"
-            className="theme-toggle lock-toggle"
+            className="ghost"
             aria-label="Sign out and lock this list"
             title="Sign out and lock this list"
             onClick={handleLogout}
           >
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <rect x="5.5" y="11" width="13" height="8.5" rx="2" />
-              <path d="M8.5 11V7.5a3.5 3.5 0 0 1 7 0V11" />
-              <path d="M12 14.5v2.5" />
-            </svg>
+            Lock
           </button>
 
           {isOwner && (
@@ -456,16 +414,7 @@ function App() {
           )}
         </div>
 
-        <MobileHeaderMenu
-          theme={theme}
-          role={session.role}
-          onToggleTheme={() =>
-            setTheme((currentTheme) =>
-              currentTheme === "dark" ? "light" : "dark",
-            )
-          }
-          onLogout={handleLogout}
-        />
+        <MobileHeaderMenu role={session.role} onLogout={handleLogout} />
       </header>
 
       <main id="top" className="app-main">
@@ -493,7 +442,7 @@ function App() {
               <p className="eyebrow">The list</p>
               <h2 id="list-heading">Dreams worth chasing</h2>
             </div>
-            <span className={`role-badge role-badge--${session.role}`}>
+            <span className="badge outline">
               {isOwner ? "Owner · editing" : "Viewer · read only"}
             </span>
           </div>
