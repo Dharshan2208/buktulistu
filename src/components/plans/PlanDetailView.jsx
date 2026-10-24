@@ -30,17 +30,6 @@ function formatTargetDate(dateString) {
   }
 }
 
-function isOverdue(dateString, isCompleted) {
-  if (!dateString || isCompleted) return false;
-  try {
-    const [year, month, day] = dateString.split("-").map(Number);
-    const target = new Date(Date.UTC(year, month - 1, day, 23, 59, 59));
-    return Date.now() > target.getTime();
-  } catch {
-    return false;
-  }
-}
-
 function normalizePhases(plan) {
   if (Array.isArray(plan.phases) && plan.phases.length > 0) {
     return plan.phases;
@@ -57,9 +46,7 @@ function normalizePhases(plan) {
           id: step.id || String(idx + 1),
           title: step.text || step.title || `Task ${idx + 1}`,
           description: null,
-          deadline: null,
           completed: Boolean(step.completed),
-          subtasks: [],
         })),
       },
     ];
@@ -89,7 +76,6 @@ function PlanDetailView({ plan, isOwner, onUpdate, onDelete, onToast }) {
   const [activePhaseForTask, setActivePhaseForTask] = useState(null);
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [newTaskDesc, setNewTaskDesc] = useState("");
-  const [newTaskDeadline, setNewTaskDeadline] = useState("");
 
   const phases = useMemo(() => normalizePhases(plan), [plan]);
 
@@ -101,50 +87,9 @@ function PlanDetailView({ plan, isOwner, onUpdate, onDelete, onToast }) {
     const nextPhases = phases.map((phase) => {
       if (phase.id !== phaseId) return phase;
 
-      const nextTasks = (phase.tasks || []).map((task) => {
-        if (task.id !== taskId) return task;
-        const nextCompleted = !task.completed;
-        // Also update subtasks if completing the parent task
-        const nextSubtasks = (task.subtasks || []).map((sub) => ({
-          ...sub,
-          completed: nextCompleted,
-        }));
-        return {
-          ...task,
-          completed: nextCompleted,
-          subtasks: nextSubtasks,
-        };
-      });
-
-      return { ...phase, tasks: nextTasks };
-    });
-
-    await persistPhases(nextPhases);
-  }
-
-  async function handleToggleSubtask(phaseId, taskId, subtaskId) {
-    if (!isOwner || isBusy) return;
-
-    const nextPhases = phases.map((phase) => {
-      if (phase.id !== phaseId) return phase;
-
-      const nextTasks = (phase.tasks || []).map((task) => {
-        if (task.id !== taskId) return task;
-
-        const nextSubtasks = (task.subtasks || []).map((sub) =>
-          sub.id === subtaskId ? { ...sub, completed: !sub.completed } : sub,
-        );
-
-        // If all subtasks are complete, mark task complete; otherwise keep as is
-        const allSubsDone =
-          nextSubtasks.length > 0 && nextSubtasks.every((s) => s.completed);
-
-        return {
-          ...task,
-          completed: allSubsDone ? true : task.completed,
-          subtasks: nextSubtasks,
-        };
-      });
+      const nextTasks = (phase.tasks || []).map((task) =>
+        task.id === taskId ? { ...task, completed: !task.completed } : task,
+      );
 
       return { ...phase, tasks: nextTasks };
     });
@@ -234,9 +179,7 @@ function PlanDetailView({ plan, isOwner, onUpdate, onDelete, onToast }) {
       id: createId("task"),
       title,
       description: newTaskDesc.trim() || null,
-      deadline: newTaskDeadline || null,
       completed: false,
-      subtasks: [],
     };
 
     const nextPhases = phases.map((phase) =>
@@ -247,7 +190,6 @@ function PlanDetailView({ plan, isOwner, onUpdate, onDelete, onToast }) {
 
     setNewTaskTitle("");
     setNewTaskDesc("");
-    setNewTaskDeadline("");
     setActivePhaseForTask(null);
 
     await persistPhases(nextPhases);
@@ -474,149 +416,65 @@ function PlanDetailView({ plan, isOwner, onUpdate, onDelete, onToast }) {
                         className="plan-phase-card__task-list"
                         aria-label={`Tasks for ${phase.title}`}
                       >
-                        {phaseTasks.map((task) => {
-                          const formattedDeadline = formatTargetDate(
-                            task.deadline,
-                          );
-                          const overdue = isOverdue(
-                            task.deadline,
-                            task.completed,
-                          );
-                          const subtasks = Array.isArray(task.subtasks)
-                            ? task.subtasks
-                            : [];
-
-                          return (
-                            <li
-                              key={task.id}
-                              className={`plan-task-item ${
-                                task.completed ? "is-task-completed" : ""
-                              }`}
-                            >
-                              <div className="plan-task-item__main">
-                                {isOwner ? (
-                                  <button
-                                    type="button"
-                                    className="step-check-btn"
-                                    aria-label={
-                                      task.completed
-                                        ? `Mark "${task.title}" as incomplete`
-                                        : `Mark "${task.title}" as complete`
-                                    }
-                                    aria-pressed={task.completed}
-                                    disabled={isBusy}
-                                    onClick={() =>
-                                      handleToggleTask(phase.id, task.id)
-                                    }
-                                  >
-                                    <span aria-hidden="true">
-                                      {task.completed ? "✓" : ""}
-                                    </span>
-                                  </button>
-                                ) : (
-                                  <span
-                                    className="step-check-indicator"
-                                    data-completed={task.completed}
-                                    aria-label={
-                                      task.completed
-                                        ? "Completed task"
-                                        : "Pending task"
-                                    }
-                                  >
-                                    <span aria-hidden="true">
-                                      {task.completed ? "✓" : ""}
-                                    </span>
+                        {phaseTasks.map((task) => (
+                          <li
+                            key={task.id}
+                            className={`plan-task-item ${
+                              task.completed ? "is-task-completed" : ""
+                            }`}
+                          >
+                            <div className="plan-task-item__main">
+                              {isOwner ? (
+                                <button
+                                  type="button"
+                                  className="step-check-btn"
+                                  aria-label={
+                                    task.completed
+                                      ? `Mark "${task.title}" as incomplete`
+                                      : `Mark "${task.title}" as complete`
+                                  }
+                                  aria-pressed={task.completed}
+                                  disabled={isBusy}
+                                  onClick={() =>
+                                    handleToggleTask(phase.id, task.id)
+                                  }
+                                >
+                                  <span aria-hidden="true">
+                                    {task.completed ? "✓" : ""}
                                   </span>
-                                )}
+                                </button>
+                              ) : (
+                                <span
+                                  className="step-check-indicator"
+                                  data-completed={task.completed}
+                                  aria-label={
+                                    task.completed
+                                      ? "Completed task"
+                                      : "Pending task"
+                                  }
+                                >
+                                  <span aria-hidden="true">
+                                    {task.completed ? "✓" : ""}
+                                  </span>
+                                </span>
+                              )}
 
-                                <div className="plan-task-item__body">
-                                  <div className="plan-task-item__header-line">
-                                    <span className="plan-task-item__title">
-                                      {task.title}
-                                    </span>
-
-                                    {formattedDeadline && (
-                                      <span
-                                        className={`badge outline plan-task-item__deadline ${
-                                          overdue ? "is-overdue" : ""
-                                        }`}
-                                        title={
-                                          overdue
-                                            ? "Overdue milestone"
-                                            : "Target deadline"
-                                        }
-                                      >
-                                        {overdue && "⚠️ "}Due{" "}
-                                        {formattedDeadline}
-                                      </span>
-                                    )}
-                                  </div>
-
-                                  {task.description && (
-                                    <p className="plan-task-item__desc">
-                                      {task.description}
-                                    </p>
-                                  )}
-
-                                  {/* Subtasks if present */}
-                                  {subtasks.length > 0 && (
-                                    <ul
-                                      className="plan-subtasks-list"
-                                      aria-label={`Subtasks for ${task.title}`}
-                                    >
-                                      {subtasks.map((sub) => (
-                                        <li
-                                          key={sub.id}
-                                          className={`plan-subtask-item ${
-                                            sub.completed
-                                              ? "is-subtask-completed"
-                                              : ""
-                                          }`}
-                                        >
-                                          {isOwner ? (
-                                            <button
-                                              type="button"
-                                              className="subtask-check-btn"
-                                              aria-label={
-                                                sub.completed
-                                                  ? `Mark "${sub.title}" as incomplete`
-                                                  : `Mark "${sub.title}" as complete`
-                                              }
-                                              disabled={isBusy}
-                                              onClick={() =>
-                                                handleToggleSubtask(
-                                                  phase.id,
-                                                  task.id,
-                                                  sub.id,
-                                                )
-                                              }
-                                            >
-                                              <span aria-hidden="true">
-                                                {sub.completed ? "✓" : ""}
-                                              </span>
-                                            </button>
-                                          ) : (
-                                            <span
-                                              className="subtask-check-indicator"
-                                              data-completed={sub.completed}
-                                            >
-                                              <span aria-hidden="true">
-                                                {sub.completed ? "✓" : ""}
-                                              </span>
-                                            </span>
-                                          )}
-                                          <span className="plan-subtask-item__title">
-                                            {sub.title}
-                                          </span>
-                                        </li>
-                                      ))}
-                                    </ul>
-                                  )}
+                              <div className="plan-task-item__body">
+                                <div className="plan-task-item__header-line">
+                                  <span className="plan-task-item__title">
+                                    {task.title}
+                                  </span>
                                 </div>
+
+                                {task.description && (
+                                  <p className="plan-task-item__desc">
+                                    {task.description}
+                                  </p>
+                                )}
                               </div>
-                            </li>
-                          );
-                        })}
+                            </div>
+                          </li>
+                        ))}
                       </ul>
 
                       {/* Add task button or form for this phase */}
@@ -645,36 +503,20 @@ function PlanDetailView({ plan, isOwner, onUpdate, onDelete, onToast }) {
                                 />
                               </div>
 
-                              <div className="form-grid-row">
-                                <div className="form-field">
-                                  <label htmlFor="inline-task-desc">
-                                    Notes (Optional)
-                                  </label>
-                                  <input
-                                    id="inline-task-desc"
-                                    type="text"
-                                    value={newTaskDesc}
-                                    onChange={(e) =>
-                                      setNewTaskDesc(e.target.value)
-                                    }
-                                    placeholder="Details or checklist tips…"
-                                    maxLength="300"
-                                  />
-                                </div>
-
-                                <div className="form-field">
-                                  <label htmlFor="inline-task-deadline">
-                                    Deadline (Optional)
-                                  </label>
-                                  <input
-                                    id="inline-task-deadline"
-                                    type="date"
-                                    value={newTaskDeadline}
-                                    onChange={(e) =>
-                                      setNewTaskDeadline(e.target.value)
-                                    }
-                                  />
-                                </div>
+                              <div className="form-field">
+                                <label htmlFor="inline-task-desc">
+                                  Notes (Optional)
+                                </label>
+                                <input
+                                  id="inline-task-desc"
+                                  type="text"
+                                  value={newTaskDesc}
+                                  onChange={(e) =>
+                                    setNewTaskDesc(e.target.value)
+                                  }
+                                  placeholder="Details or checklist tips…"
+                                  maxLength="300"
+                                />
                               </div>
 
                               <div className="form-actions">
