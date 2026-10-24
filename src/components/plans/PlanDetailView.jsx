@@ -93,38 +93,6 @@ function PlanDetailView({ plan, isOwner, onUpdate, onDelete, onToast }) {
 
   const phases = useMemo(() => normalizePhases(plan), [plan]);
 
-  // Comprehensive progress calculation
-  const stats = useMemo(() => {
-    let totalTasks = 0;
-    let completedTasks = 0;
-    let totalPhases = phases.length;
-    let completedPhases = 0;
-
-    for (const phase of phases) {
-      const tasks = Array.isArray(phase.tasks) ? phase.tasks : [];
-      const phaseTotal = tasks.length;
-      const phaseCompleted = tasks.filter((t) => t.completed).length;
-
-      totalTasks += phaseTotal;
-      completedTasks += phaseCompleted;
-
-      if (phaseTotal > 0 && phaseCompleted === phaseTotal) {
-        completedPhases += 1;
-      }
-    }
-
-    const taskPercent =
-      totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
-
-    return {
-      totalTasks,
-      completedTasks,
-      totalPhases,
-      completedPhases,
-      taskPercent,
-    };
-  }, [phases]);
-
   const formattedTargetDate = formatTargetDate(plan.target_date);
 
   async function handleToggleTask(phaseId, taskId) {
@@ -389,14 +357,6 @@ function PlanDetailView({ plan, isOwner, onUpdate, onDelete, onToast }) {
               </span>
             </div>
           )}
-
-          <div className="plan-detail__meta-item">
-            <span className="plan-detail__meta-label">Overall Progress</span>
-            <span className="plan-detail__meta-val">
-              {stats.completedTasks} of {stats.totalTasks} tasks (
-              {stats.taskPercent}%)
-            </span>
-          </div>
         </div>
 
         {plan.description && (
@@ -407,24 +367,6 @@ function PlanDetailView({ plan, isOwner, onUpdate, onDelete, onToast }) {
             <p className="plan-detail__overview-text">{plan.description}</p>
           </div>
         )}
-
-        {/* Big visual progress meter */}
-        <div className="plan-detail__meter-box">
-          <div className="plan-detail__meter-info">
-            <span className="plan-detail__meter-percent">
-              {stats.taskPercent}% Complete
-            </span>
-            <span className="plan-detail__meter-counts">
-              {stats.completedPhases}/{stats.totalPhases} phases done ·{" "}
-              {stats.completedTasks}/{stats.totalTasks} tasks done
-            </span>
-          </div>
-          <progress
-            value={stats.completedTasks}
-            max={stats.totalTasks || 1}
-            aria-label={`${stats.completedTasks} of ${stats.totalTasks} tasks completed`}
-          />
-        </div>
       </header>
 
       {actionError && (

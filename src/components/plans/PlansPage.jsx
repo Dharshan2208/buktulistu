@@ -15,7 +15,6 @@ import PlanDetailView from "./PlanDetailView.jsx";
 import PlanFilters from "./PlanFilters.jsx";
 import PlanForm from "./PlanForm.jsx";
 import PlanList from "./PlanList.jsx";
-import PlanStats from "./PlanStats.jsx";
 import { getPlanTaskStats } from "../../utils/planStats.js";
 
 let nextTemporaryId = -1;
@@ -424,19 +423,8 @@ function PlansPage({
   return (
     <>
       <section className="intro" aria-labelledby="plans-heading">
-        <p className="eyebrow">Roadmaps &amp; Objectives</p>
         <h1 id="plans-heading">Plans</h1>
-        <p className="intro__lead">
-          Structured roadmaps, milestones, and actionable steps for what lies
-          ahead.
-        </p>
       </section>
-
-      {!isLoading && !loadError && plans.length > 0 && (
-        <section id="plans-progress" aria-label="Plans progress">
-          <PlanStats plans={plans} />
-        </section>
-      )}
 
       <section
         id="plans-list"

@@ -5,7 +5,6 @@ import Modal from "../ui/Modal.jsx";
 import SketchButton from "../ui/SketchButton.jsx";
 import SketchCard from "../ui/SketchCard.jsx";
 import PlanForm from "./PlanForm.jsx";
-import { getPlanTaskStats } from "../../utils/planStats.js";
 
 const STATUS_LABELS = {
   not_started: "Not Started",
@@ -37,7 +36,6 @@ function PlanCard({ plan, isOwner, onUpdate, onDelete }) {
   const [isBusy, setIsBusy] = useState(false);
   const [actionError, setActionError] = useState(null);
 
-  const stats = getPlanTaskStats(plan);
   const isCompleted = plan.status === "completed";
   const formattedDate = formatTargetDate(plan.target_date);
 
@@ -161,22 +159,6 @@ function PlanCard({ plan, isOwner, onUpdate, onDelete }) {
           {plan.description && (
             <div className="plan-card__description">
               <p>{plan.description}</p>
-            </div>
-          )}
-
-          {stats.total > 0 && (
-            <div className="plan-card__progress-wrap">
-              <div className="plan-card__progress-info">
-                <span className="plan-card__progress-label">Milestones</span>
-                <span className="plan-card__progress-count">
-                  {stats.completed}/{stats.total} ({stats.percent}%)
-                </span>
-              </div>
-              <progress
-                value={stats.completed}
-                max={stats.total}
-                aria-label={`${stats.completed} of ${stats.total} milestones completed`}
-              />
             </div>
           )}
 
