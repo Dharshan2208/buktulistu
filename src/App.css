@@ -1147,7 +1147,47 @@ body {
   border-radius: var(--radius-small);
   transition:
     border-color var(--transition-fast),
-    background var(--transition-fast);
+    background var(--transition-fast),
+    transform var(--transition-fast);
+}
+
+.plan-task-item[draggable="true"] {
+  cursor: grab;
+}
+
+.plan-task-item[draggable="true"]:active {
+  cursor: grabbing;
+}
+
+.plan-task-item.is-dragging {
+  opacity: 0.35;
+  border-style: dashed;
+  border-color: var(--border);
+}
+
+.plan-task-item.is-drag-over {
+  border-color: var(--ring);
+  background: var(--muted);
+  transform: translateY(-2px);
+}
+
+.plan-task-item__drag-handle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted-foreground);
+  margin-top: 0.15rem;
+  flex-shrink: 0;
+  opacity: 0.45;
+  transition:
+    opacity var(--transition-fast),
+    color var(--transition-fast);
+  user-select: none;
+}
+
+.plan-task-item:hover .plan-task-item__drag-handle {
+  opacity: 0.9;
+  color: var(--foreground);
 }
 
 .plan-task-item.is-task-completed {

@@ -77,8 +77,53 @@ function PlanDetailView({ plan, isOwner, onUpdate, onDelete, onToast }) {
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [newTaskDesc, setNewTaskDesc] = useState("");
 
+  // Drag and drop state
+  const [draggedIndex, setDraggedIndex] = useState(null);
+  const [dragOverIndex, setDragOverIndex] = useState(null);
+
   const tasks = useMemo(() => normalizeTasks(plan), [plan]);
   const formattedTargetDate = formatTargetDate(plan.target_date);
+
+  function handleDragStart(event, index) {
+    if (!isOwner || isBusy) return;
+    setDraggedIndex(index);
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData("text/plain", String(index));
+  }
+
+  function handleDragOver(event, index) {
+    if (!isOwner || isBusy) return;
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "move";
+    if (dragOverIndex !== index) {
+      setDragOverIndex(index);
+    }
+  }
+
+  function handleDragEnd() {
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+  }
+
+  function handleDrop(event, targetIndex) {
+    event.preventDefault();
+    if (!isOwner || isBusy) return;
+    if (draggedIndex === null || draggedIndex === targetIndex) {
+      setDraggedIndex(null);
+      setDragOverIndex(null);
+      return;
+    }
+
+    const reordered = [...tasks];
+    const [movedItem] = reordered.splice(draggedIndex, 1);
+    reordered.splice(targetIndex, 0, movedItem);
+
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+
+    persistTasks(reordered);
+    onToast("Tasks reordered");
+  }
 
   async function persistTasks(nextTasks) {
     setIsBusy(true);
@@ -319,73 +364,108 @@ function PlanDetailView({ plan, isOwner, onUpdate, onDelete, onToast }) {
           <div className="plan-tasks-container">
             {tasks.length > 0 && (
               <ul className="plan-tasks-list" aria-label="Tasks list">
-                {tasks.map((task) => (
-                  <li
-                    key={task.id}
-                    className={`plan-task-item ${
-                      task.completed ? "is-task-completed" : ""
-                    }`}
-                  >
-                    <div className="plan-task-item__main">
-                      {isOwner ? (
-                        <button
-                          type="button"
-                          className="step-check-btn"
-                          aria-label={
-                            task.completed
-                              ? `Mark "${task.title}" as incomplete`
-                              : `Mark "${task.title}" as complete`
-                          }
-                          aria-pressed={task.completed}
-                          disabled={isBusy}
-                          onClick={() => handleToggleTask(task.id)}
-                        >
-                          <span aria-hidden="true">
-                            {task.completed ? "✓" : ""}
-                          </span>
-                        </button>
-                      ) : (
-                        <span
-                          className="step-check-indicator"
-                          data-completed={task.completed}
-                          aria-label={
-                            task.completed ? "Completed task" : "Pending task"
-                          }
-                        >
-                          <span aria-hidden="true">
-                            {task.completed ? "✓" : ""}
-                          </span>
-                        </span>
-                      )}
+                {tasks.map((task, index) => {
+                  const isDragging = draggedIndex === index;
+                  const isDragOver =
+                    dragOverIndex === index && draggedIndex !== index;
 
-                      <div className="plan-task-item__body">
-                        <div className="plan-task-item__header-line">
-                          <span className="plan-task-item__title">
-                            {task.title}
-                          </span>
-                          {isOwner && (
-                            <button
-                              type="button"
-                              className="ghost small plan-task-item__delete-btn"
-                              aria-label={`Delete "${task.title}"`}
-                              disabled={isBusy}
-                              onClick={() => handleDeleteTask(task.id)}
-                              title="Delete task"
+                  return (
+                    <li
+                      key={task.id}
+                      draggable={isOwner && !isBusy}
+                      onDragStart={(e) => handleDragStart(e, index)}
+                      onDragOver={(e) => handleDragOver(e, index)}
+                      onDragEnd={handleDragEnd}
+                      onDrop={(e) => handleDrop(e, index)}
+                      className={`plan-task-item ${
+                        task.completed ? "is-task-completed" : ""
+                      } ${isDragging ? "is-dragging" : ""} ${
+                        isDragOver ? "is-drag-over" : ""
+                      }`}
+                    >
+                      <div className="plan-task-item__main">
+                        {isOwner && (
+                          <span
+                            className="plan-task-item__drag-handle"
+                            aria-hidden="true"
+                            title="Drag to rearrange"
+                          >
+                            <svg
+                              width="10"
+                              height="14"
+                              viewBox="0 0 10 14"
+                              fill="currentColor"
                             >
-                              ✕
-                            </button>
+                              <circle cx="3" cy="3" r="1.5" />
+                              <circle cx="7" cy="3" r="1.5" />
+                              <circle cx="3" cy="7" r="1.5" />
+                              <circle cx="7" cy="7" r="1.5" />
+                              <circle cx="3" cy="11" r="1.5" />
+                              <circle cx="7" cy="11" r="1.5" />
+                            </svg>
+                          </span>
+                        )}
+
+                        {isOwner ? (
+                          <button
+                            type="button"
+                            className="step-check-btn"
+                            aria-label={
+                              task.completed
+                                ? `Mark "${task.title}" as incomplete`
+                                : `Mark "${task.title}" as complete`
+                            }
+                            aria-pressed={task.completed}
+                            disabled={isBusy}
+                            onClick={() => handleToggleTask(task.id)}
+                          >
+                            <span aria-hidden="true">
+                              {task.completed ? "✓" : ""}
+                            </span>
+                          </button>
+                        ) : (
+                          <span
+                            className="step-check-indicator"
+                            data-completed={task.completed}
+                            aria-label={
+                              task.completed ? "Completed task" : "Pending task"
+                            }
+                          >
+                            <span aria-hidden="true">
+                              {task.completed ? "✓" : ""}
+                            </span>
+                          </span>
+                        )}
+
+                        <div className="plan-task-item__body">
+                          <div className="plan-task-item__header-line">
+                            <span className="plan-task-item__title">
+                              {task.title}
+                            </span>
+                            {isOwner && (
+                              <button
+                                type="button"
+                                className="ghost small plan-task-item__delete-btn"
+                                aria-label={`Delete "${task.title}"`}
+                                disabled={isBusy}
+                                onClick={() => handleDeleteTask(task.id)}
+                                title="Delete task"
+                              >
+                                ✕
+                              </button>
+                            )}
+                          </div>
+
+                          {task.description && (
+                            <p className="plan-task-item__desc">
+                              {task.description}
+                            </p>
                           )}
                         </div>
-
-                        {task.description && (
-                          <p className="plan-task-item__desc">
-                            {task.description}
-                          </p>
-                        )}
                       </div>
-                    </div>
-                  </li>
-                ))}
+                    </li>
+                  );
+                })}
               </ul>
             )}
 
