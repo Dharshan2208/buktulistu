@@ -199,6 +199,8 @@ const CREATE_PLAN_FIELDS = new Set([
   "status",
   "priority",
   "target_date",
+  "estimated_duration",
+  "phases",
   "steps",
 ]);
 
@@ -228,6 +230,121 @@ function validatePlanDescription(value, fields) {
   }
 
   return description || null;
+}
+
+function validateEstimatedDuration(value, fields) {
+  if (value === undefined || value === null || value === "") return null;
+
+  if (typeof value !== "string") {
+    fields.estimated_duration = "Estimated duration must be text";
+    return null;
+  }
+
+  const duration = value.trim();
+
+  if (duration.length > 100) {
+    fields.estimated_duration = "Estimated duration cannot exceed 100 characters";
+  }
+
+  return duration || null;
+}
+
+function validatePhases(value, fields) {
+  if (value === undefined || value === null || value === "") return "[]";
+
+  let rawList = value;
+
+  if (typeof rawList === "string") {
+    try {
+      rawList = JSON.parse(rawList);
+    } catch {
+      fields.phases = "Phases must be a valid JSON array";
+      return "[]";
+    }
+  }
+
+  if (!Array.isArray(rawList)) {
+    fields.phases = "Phases must be an array";
+    return "[]";
+  }
+
+  const sanitized = [];
+
+  for (let pIdx = 0; pIdx < rawList.length; pIdx += 1) {
+    const phase = rawList[pIdx];
+
+    if (!phase || typeof phase !== "object") continue;
+
+    const title =
+      typeof phase.title === "string" ? phase.title.trim() : `Phase ${pIdx + 1}`;
+    const description =
+      typeof phase.description === "string" ? phase.description.trim() : null;
+    const targetDate =
+      typeof phase.target_date === "string" ? phase.target_date.trim() : null;
+
+    const rawTasks = Array.isArray(phase.tasks) ? phase.tasks : [];
+    const sanitizedTasks = [];
+
+    for (let tIdx = 0; tIdx < rawTasks.length; tIdx += 1) {
+      const task = rawTasks[tIdx];
+
+      if (!task || typeof task !== "object") continue;
+
+      const taskTitle =
+        typeof task.title === "string"
+          ? task.title.trim()
+          : typeof task.text === "string"
+            ? task.text.trim()
+            : "";
+
+      if (!taskTitle) continue;
+
+      const rawSubtasks = Array.isArray(task.subtasks) ? task.subtasks : [];
+      const sanitizedSubtasks = [];
+
+      for (let sIdx = 0; sIdx < rawSubtasks.length; sIdx += 1) {
+        const sub = rawSubtasks[sIdx];
+
+        if (!sub || typeof sub !== "object") continue;
+
+        const subTitle =
+          typeof sub.title === "string"
+            ? sub.title.trim()
+            : typeof sub.text === "string"
+              ? sub.text.trim()
+              : "";
+
+        if (!subTitle) continue;
+
+        sanitizedSubtasks.push({
+          id: String(sub.id ?? `sub-${pIdx}-${tIdx}-${sIdx}`),
+          title: subTitle,
+          completed: Boolean(sub.completed),
+        });
+      }
+
+      sanitizedTasks.push({
+        id: String(task.id ?? `task-${pIdx}-${tIdx}`),
+        title: taskTitle,
+        description:
+          typeof task.description === "string" ? task.description.trim() : null,
+        deadline:
+          typeof task.deadline === "string" ? task.deadline.trim() : null,
+        completed: Boolean(task.completed),
+        subtasks: sanitizedSubtasks,
+      });
+    }
+
+    sanitized.push({
+      id: String(phase.id ?? `phase-${pIdx + 1}`),
+      title,
+      description,
+      target_date: targetDate,
+      tasks: sanitizedTasks,
+    });
+  }
+
+  return JSON.stringify(sanitized);
 }
 
 function validateSteps(value, fields) {
@@ -301,6 +418,11 @@ export function validateCreatePlan(body) {
     status: validatePlanStatus(body.status ?? "not_started", fields),
     priority: validatePriority(body.priority ?? "medium", fields),
     target_date: validateTargetDate(body.target_date, fields),
+    estimated_duration: validateEstimatedDuration(
+      body.estimated_duration,
+      fields,
+    ),
+    phases: validatePhases(body.phases ?? [], fields),
     steps: validateSteps(body.steps ?? [], fields),
   };
 
@@ -338,6 +460,17 @@ export function validateUpdatePlan(body) {
 
   if (Object.hasOwn(body, "target_date")) {
     data.target_date = validateTargetDate(body.target_date, fields);
+  }
+
+  if (Object.hasOwn(body, "estimated_duration")) {
+    data.estimated_duration = validateEstimatedDuration(
+      body.estimated_duration,
+      fields,
+    );
+  }
+
+  if (Object.hasOwn(body, "phases")) {
+    data.phases = validatePhases(body.phases, fields);
   }
 
   if (Object.hasOwn(body, "steps")) {

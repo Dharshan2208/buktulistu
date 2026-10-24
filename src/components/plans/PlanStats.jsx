@@ -1,47 +1,52 @@
+import { getPlanTaskStats } from "../../utils/planStats.js";
 import SketchCard from "../ui/SketchCard.jsx";
 
 function PlanStats({ plans }) {
-  const total = plans.length;
-  const completed = plans.filter((plan) => plan.status === "completed").length;
-  const inProgress = plans.filter((plan) => plan.status === "in_progress").length;
+  const totalPlans = plans.length;
+  const completedPlans = plans.filter((plan) => plan.status === "completed").length;
+  const inProgressPlans = plans.filter((plan) => plan.status === "in_progress").length;
 
-  // Total steps across all plans
-  let totalSteps = 0;
-  let completedSteps = 0;
+  let totalTasks = 0;
+  let completedTasks = 0;
 
   for (const plan of plans) {
-    if (Array.isArray(plan.steps)) {
-      totalSteps += plan.steps.length;
-      completedSteps += plan.steps.filter((s) => s.completed).length;
-    }
+    const stats = getPlanTaskStats(plan);
+    totalTasks += stats.total;
+    completedTasks += stats.completed;
   }
+
+  const pendingMilestones = totalTasks - completedTasks;
+  const overallTaskPercent =
+    totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
   return (
     <SketchCard className="progress-summary plan-stats" variant="paper" seed={95}>
       <div className="progress-summary__meter">
         <progress
-          value={completed}
-          max={total}
-          aria-label={`${completed} of ${total} plans completed`}
+          value={completedPlans}
+          max={totalPlans}
+          aria-label={`${completedPlans} of ${totalPlans} plans completed`}
         />
         <span className="badge outline" aria-hidden="true">
-          {completed}/{total} plans
+          {completedPlans}/{totalPlans} plans
         </span>
       </div>
-      {(inProgress > 0 || totalSteps > 0) && (
-        <div className="plan-stats__meta">
-          {inProgress > 0 && (
+
+      <div className="plan-stats__meta">
+        <span className="plan-stats__pill">
+          <strong>{inProgressPlans}</strong> in progress
+        </span>
+        {totalTasks > 0 && (
+          <>
             <span className="plan-stats__pill">
-              <strong>{inProgress}</strong> in progress
+              <strong>{pendingMilestones}</strong> pending milestones
             </span>
-          )}
-          {totalSteps > 0 && (
             <span className="plan-stats__pill">
-              <strong>{completedSteps}/{totalSteps}</strong> milestones done
+              <strong>{overallTaskPercent}%</strong> overall execution
             </span>
-          )}
-        </div>
-      )}
+          </>
+        )}
+      </div>
     </SketchCard>
   );
 }

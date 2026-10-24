@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ApiError } from "../../api/bucketApi.js";
 import {
   createPlan,
@@ -6,15 +6,29 @@ import {
   getPlans,
   updatePlan,
 } from "../../api/plansApi.js";
+import { CATEGORY_OPTIONS } from "../../categories.js";
+import { navigate } from "../../utils/router.js";
 import Modal from "../ui/Modal.jsx";
+import SketchButton from "../ui/SketchButton.jsx";
+import SketchCard from "../ui/SketchCard.jsx";
+import PlanDetailView from "./PlanDetailView.jsx";
+import PlanFilters from "./PlanFilters.jsx";
 import PlanForm from "./PlanForm.jsx";
 import PlanList from "./PlanList.jsx";
 import PlanStats from "./PlanStats.jsx";
+import { getPlanTaskStats } from "../../utils/planStats.js";
 
 let nextTemporaryId = -1;
 
+const PRIORITY_WEIGHTS = {
+  high: 3,
+  medium: 2,
+  low: 1,
+};
+
 function normalizePlan(plan) {
   let steps = [];
+  let phases = [];
 
   if (typeof plan.steps === "string") {
     try {
@@ -26,11 +40,23 @@ function normalizePlan(plan) {
     steps = plan.steps;
   }
 
+  if (typeof plan.phases === "string") {
+    try {
+      phases = JSON.parse(plan.phases);
+    } catch {
+      phases = [];
+    }
+  } else if (Array.isArray(plan.phases)) {
+    phases = plan.phases;
+  }
+
   return {
     ...plan,
     category: plan.category || "general",
     status: plan.status || "not_started",
     priority: plan.priority || "medium",
+    estimated_duration: plan.estimated_duration ?? null,
+    phases,
     steps,
   };
 }
@@ -41,10 +67,16 @@ function PlansPage({
   onSessionExpired,
   isCreateOpen,
   setIsCreateOpen,
+  planDetailId = null,
 }) {
   const [plans, setPlans] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState(null);
+
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [sortBy, setSortBy] = useState("newest");
 
   useEffect(() => {
     let ignore = false;
@@ -114,6 +146,8 @@ function PlansPage({
       status: values.status,
       priority: values.priority,
       target_date: values.target_date,
+      estimated_duration: values.estimated_duration || null,
+      phases: values.phases || [],
       steps: values.steps || [],
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
@@ -129,6 +163,11 @@ function PlansPage({
       );
       setIsCreateOpen(false);
       onToast("Plan created successfully");
+
+      // Navigate to the newly created plan's detail view
+      if (newPlan.id > 0) {
+        navigate(`/plans/${newPlan.id}`);
+      }
     } catch (error) {
       setPlans((current) => current.filter((plan) => plan.id !== temporaryId));
       handleMutationError(error);
@@ -197,6 +236,191 @@ function PlansPage({
     }
   }
 
+  const categories = useMemo(() => {
+    const uniqueCategories = new Set([
+      ...CATEGORY_OPTIONS.map((cat) => cat.value),
+      ...plans.map((p) => p.category),
+    ]);
+
+    return [...uniqueCategories].sort((first, second) =>
+      first.localeCompare(second),
+    );
+  }, [plans]);
+
+  const statusCounts = useMemo(() => {
+    return {
+      all: plans.length,
+      in_progress: plans.filter((p) => p.status === "in_progress").length,
+      not_started: plans.filter((p) => p.status === "not_started").length,
+      completed: plans.filter((p) => p.status === "completed").length,
+    };
+  }, [plans]);
+
+  const visiblePlans = useMemo(() => {
+    const normalizedSearch = searchTerm.trim().toLowerCase();
+
+    const filtered = plans.filter((plan) => {
+      const searchableText = [
+        plan.title,
+        plan.description ?? "",
+        plan.category,
+        plan.estimated_duration ?? "",
+      ]
+        .join(" ")
+        .toLowerCase();
+
+      const matchesSearch =
+        normalizedSearch === "" || searchableText.includes(normalizedSearch);
+
+      const matchesStatus =
+        statusFilter === "all" || plan.status === statusFilter;
+
+      const matchesCategory =
+        categoryFilter === "all" || plan.category === categoryFilter;
+
+      return matchesSearch && matchesStatus && matchesCategory;
+    });
+
+    filtered.sort((first, second) => {
+      if (sortBy === "deadline") {
+        if (first.target_date && second.target_date) {
+          return first.target_date.localeCompare(second.target_date);
+        }
+        if (first.target_date && !second.target_date) return -1;
+        if (!first.target_date && second.target_date) return 1;
+        return (second.created_at || "").localeCompare(first.created_at || "");
+      }
+
+      if (sortBy === "priority") {
+        const weightFirst = PRIORITY_WEIGHTS[first.priority] ?? 2;
+        const weightSecond = PRIORITY_WEIGHTS[second.priority] ?? 2;
+        if (weightFirst !== weightSecond) {
+          return weightSecond - weightFirst;
+        }
+        return (second.created_at || "").localeCompare(first.created_at || "");
+      }
+
+      if (sortBy === "progress") {
+        const percentFirst = getPlanTaskStats(first).percent;
+        const percentSecond = getPlanTaskStats(second).percent;
+        if (percentFirst !== percentSecond) {
+          return percentSecond - percentFirst;
+        }
+        return (second.created_at || "").localeCompare(first.created_at || "");
+      }
+
+      if (sortBy === "title") {
+        return first.title.localeCompare(second.title, undefined, {
+          sensitivity: "base",
+        });
+      }
+
+      return (second.created_at || "").localeCompare(first.created_at || "");
+    });
+
+    return filtered;
+  }, [plans, searchTerm, statusFilter, categoryFilter, sortBy]);
+
+  function clearFilters() {
+    setSearchTerm("");
+    setStatusFilter("all");
+    setCategoryFilter("all");
+    setSortBy("newest");
+  }
+
+  const emptyMessage =
+    plans.length === 0
+      ? "Document an upcoming project, trip, or personal goal."
+      : "Try a different search or clear your filters.";
+
+  // If viewing a single plan's detail view:
+  if (planDetailId) {
+    if (isLoading) {
+      return (
+        <div className="bucket-grid" aria-label="Loading roadmap">
+          <div className="card" role="status" aria-hidden="true">
+            <div className="skeleton line" />
+            <div className="skeleton line" />
+          </div>
+          <span className="sr-only">Loading roadmap…</span>
+        </div>
+      );
+    }
+
+    if (loadError) {
+      return (
+        <SketchCard variant="paper" dashed className="state-card">
+          <span className="state-card__mark" aria-hidden="true">
+            !
+          </span>
+          <h3>Couldn't load your roadmap</h3>
+          <p>Check your connection and refresh the page to try again.</p>
+          <SketchButton
+            type="button"
+            onClick={() => navigate("/plans")}
+            variant="yellow"
+          >
+            Back to all plans
+          </SketchButton>
+        </SketchCard>
+      );
+    }
+
+    const selectedPlan = plans.find(
+      (p) => String(p.id) === String(planDetailId),
+    );
+
+    if (!selectedPlan) {
+      return (
+        <SketchCard variant="paper" dashed className="state-card">
+          <span className="state-card__mark" aria-hidden="true">
+            ○
+          </span>
+          <h3>Plan not found</h3>
+          <p>This roadmap might have been removed or does not exist.</p>
+          <SketchButton
+            type="button"
+            onClick={() => navigate("/plans")}
+            variant="yellow"
+          >
+            Back to all plans
+          </SketchButton>
+        </SketchCard>
+      );
+    }
+
+    return (
+      <>
+        <PlanDetailView
+          plan={selectedPlan}
+          isOwner={isOwner}
+          onUpdate={handleUpdate}
+          onDelete={handleDelete}
+          onToast={onToast}
+        />
+
+        {isOwner && (
+          <Modal
+            open={isCreateOpen}
+            title="Create a new plan"
+            description="Outline your goal, set a target timeline, and map your next move."
+            onClose={() => setIsCreateOpen(false)}
+          >
+            <PlanForm
+              idPrefix="create-plan-detail"
+              onSubmit={handleCreate}
+              onCancel={() => setIsCreateOpen(false)}
+              submitLabel="Create plan"
+              busyLabel="Creating…"
+              resetAfterSubmit
+            />
+          </Modal>
+        )}
+      </>
+    );
+  }
+
+  // Dashboard / List view
   return (
     <>
       <section className="intro" aria-labelledby="plans-heading">
@@ -228,10 +452,28 @@ function PlansPage({
           </span>
         </div>
 
+        <PlanFilters
+          searchTerm={searchTerm}
+          onSearchChange={setSearchTerm}
+          statusFilter={statusFilter}
+          onStatusChange={setStatusFilter}
+          categoryFilter={categoryFilter}
+          onCategoryChange={setCategoryFilter}
+          sortBy={sortBy}
+          onSortChange={setSortBy}
+          categories={categories}
+          statusCounts={statusCounts}
+          visibleCount={visiblePlans.length}
+          totalCount={plans.length}
+          onClear={clearFilters}
+        />
+
         <PlanList
-          plans={plans}
+          plans={visiblePlans}
           isLoading={isLoading}
           error={loadError}
+          emptyMessage={emptyMessage}
+          hasPlans={plans.length > 0}
           isOwner={isOwner}
           onAdd={() => setIsCreateOpen(true)}
           onUpdate={handleUpdate}

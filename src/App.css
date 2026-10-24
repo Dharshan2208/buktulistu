@@ -925,6 +925,446 @@ body {
   font-size: 0.8rem;
 }
 
+/* Plan Card clickable & meta */
+.plan-card--clickable {
+  cursor: pointer;
+  transition: transform var(--transition-fast), border-color var(--transition-fast);
+}
+
+.plan-card--clickable:hover {
+  border-color: var(--ring);
+}
+
+.plan-card__link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.plan-card__link:hover {
+  text-decoration: underline;
+}
+
+.plan-card__meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-top: 0.6rem;
+}
+
+.plan-card__duration {
+  font-size: var(--text-8);
+  color: var(--muted-foreground);
+}
+
+.plan-card__view-action {
+  margin-top: 0.75rem;
+  padding-top: 0.5rem;
+  border-top: 1px dashed var(--border);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.plan-card__view-cta {
+  font-size: var(--text-8);
+  color: var(--link);
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  transition: gap var(--transition-fast);
+}
+
+.plan-card--clickable:hover .plan-card__view-cta {
+  gap: 0.5rem;
+}
+
+/* Plan Detail Page */
+.plan-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+  padding-bottom: 3rem;
+}
+
+.plan-detail__nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.plan-detail__back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding-left: 0;
+  color: var(--muted-foreground);
+}
+
+.plan-detail__back-btn:hover {
+  color: var(--foreground);
+}
+
+.plan-detail__top-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.plan-detail__header {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.plan-detail__badges {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.plan-detail__title {
+  font-size: clamp(1.75rem, 3.5vw, 2.5rem);
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  margin: 0;
+  color: var(--foreground);
+}
+
+.plan-detail__meta-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  margin-top: 0.25rem;
+}
+
+.plan-detail__meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.plan-detail__meta-label {
+  font-size: var(--text-8);
+  color: var(--muted-foreground);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.plan-detail__meta-val {
+  font-size: var(--text-7);
+  font-weight: 500;
+  color: var(--foreground);
+}
+
+.plan-detail__overview {
+  margin-top: 0.5rem;
+}
+
+.plan-detail__section-title {
+  font-size: var(--text-7);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted-foreground);
+  margin: 0 0 0.4rem 0;
+}
+
+.plan-detail__overview-text {
+  font-size: 1rem;
+  line-height: 1.6;
+  color: var(--foreground);
+  margin: 0;
+  white-space: pre-line;
+}
+
+.plan-detail__meter-box {
+  margin-top: 0.5rem;
+  padding: 1rem 1.25rem;
+  background: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-medium);
+}
+
+.plan-detail__meter-info {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 0.6rem;
+}
+
+.plan-detail__meter-percent {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--foreground);
+}
+
+.plan-detail__meter-counts {
+  font-size: var(--text-8);
+  color: var(--muted-foreground);
+}
+
+.plan-detail__meter-box progress {
+  width: 100%;
+  height: 8px;
+  border-radius: var(--radius-small);
+  margin: 0;
+}
+
+/* Execution Roadmap & Timeline */
+.plan-detail__roadmap {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.plan-timeline {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  padding-left: 2rem;
+}
+
+.plan-timeline::before {
+  content: "";
+  position: absolute;
+  top: 1.5rem;
+  bottom: 2rem;
+  left: 0.85rem;
+  width: 2px;
+  background: var(--border);
+}
+
+.plan-timeline__node {
+  position: relative;
+  margin-bottom: 1.5rem;
+}
+
+.plan-timeline__node:last-child {
+  margin-bottom: 0;
+}
+
+.plan-timeline__bullet {
+  position: absolute;
+  top: 1.2rem;
+  left: -2rem;
+  transform: translateX(-50%);
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 50%;
+  background: var(--background);
+  border: 2px solid var(--border);
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  font-weight: 600;
+  display: grid;
+  place-items: center;
+  z-index: 1;
+  transition: all var(--transition-fast);
+}
+
+.plan-timeline__node.is-phase-complete .plan-timeline__bullet {
+  background: var(--success);
+  border-color: var(--success);
+  color: #000;
+}
+
+.plan-phase-card {
+  border-radius: var(--radius-medium);
+}
+
+.plan-phase-card__content {
+  padding: 1.25rem;
+}
+
+.plan-phase-card__header {
+  margin-bottom: 1rem;
+}
+
+.plan-phase-card__top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.plan-phase-card__date {
+  font-size: var(--text-8);
+  color: var(--muted-foreground);
+}
+
+.plan-phase-card__count {
+  margin-left: auto;
+}
+
+.plan-phase-card__title {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin: 0 0 0.35rem;
+  color: var(--foreground);
+}
+
+.plan-phase-card__desc {
+  font-size: var(--text-7);
+  color: var(--muted-foreground);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.plan-phase-card__tasks {
+  margin-top: 0.75rem;
+}
+
+.plan-phase-card__task-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.plan-task-item {
+  padding: 0.75rem 0.85rem;
+  background: color-mix(in srgb, var(--background) 70%, transparent);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-small);
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+}
+
+.plan-task-item.is-task-completed {
+  border-color: color-mix(in srgb, var(--success) 30%, transparent);
+}
+
+.plan-task-item__main {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.plan-task-item__body {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.plan-task-item__header-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.plan-task-item__title {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--foreground);
+  word-break: break-word;
+}
+
+.is-task-completed .plan-task-item__title {
+  color: var(--muted-foreground);
+  text-decoration: line-through;
+}
+
+.plan-task-item__deadline {
+  font-size: 0.75rem;
+  padding: 0.15rem 0.45rem;
+}
+
+.plan-task-item__deadline.is-overdue {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.plan-task-item__desc {
+  margin: 0.35rem 0 0;
+  font-size: var(--text-8);
+  color: var(--muted-foreground);
+  line-height: 1.45;
+}
+
+/* Subtasks */
+.plan-subtasks-list {
+  list-style: none;
+  margin: 0.5rem 0 0 0;
+  padding: 0.4rem 0 0 0.5rem;
+  border-top: 1px dashed var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.plan-subtask-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: var(--text-8);
+}
+
+.subtask-check-btn,
+.subtask-check-indicator {
+  width: 1rem;
+  height: 1rem;
+  flex: 0 0 1rem;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: transparent;
+  color: var(--foreground);
+  display: inline-grid;
+  place-items: center;
+  font-size: 0.65rem;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+}
+
+.subtask-check-indicator {
+  cursor: default;
+}
+
+.subtask-check-btn:hover:not(:disabled) {
+  border-color: var(--ring);
+}
+
+.is-subtask-completed .subtask-check-btn,
+.is-subtask-completed .subtask-check-indicator,
+.subtask-check-indicator[data-completed="true"] {
+  background: color-mix(in srgb, var(--success) 20%, transparent);
+  border-color: var(--success);
+  color: var(--success);
+}
+
+.plan-subtask-item__title {
+  color: var(--foreground);
+}
+
+.is-subtask-completed .plan-subtask-item__title {
+  color: var(--muted-foreground);
+  text-decoration: line-through;
+}
+
+.plan-phase-card__add-task-wrap {
+  margin-top: 0.75rem;
+  padding-top: 0.5rem;
+}
+
+.plan-inline-task-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  padding: 0.85rem;
+  background: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-small);
+}
+
 @media (max-width: 960px) {
   .bucket-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1030,5 +1470,28 @@ body {
 
   .gate-form__row {
     flex-direction: column;
+  }
+
+  .plan-timeline {
+    padding-left: 1.5rem;
+  }
+
+  .plan-timeline::before {
+    left: 0.6rem;
+  }
+
+  .plan-timeline__bullet {
+    left: -1.5rem;
+    width: 1.5rem;
+    height: 1.5rem;
+    font-size: 0.7rem;
+  }
+
+  .plan-detail__meta-grid {
+    gap: 0.85rem;
+  }
+
+  .plan-detail__title {
+    font-size: 1.5rem;
   }
 }

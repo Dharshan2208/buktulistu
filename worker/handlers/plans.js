@@ -8,6 +8,8 @@ const UPDATE_COLUMNS = {
   status: "status",
   priority: "priority",
   target_date: "target_date",
+  estimated_duration: "estimated_duration",
+  phases: "phases",
   steps: "steps",
 };
 
@@ -20,24 +22,27 @@ function validationError(fields) {
   );
 }
 
+function parseJsonArray(value) {
+  if (Array.isArray(value)) return value;
+  if (typeof value === "string") {
+    try {
+      const parsed = JSON.parse(value);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+  return [];
+}
+
 function normalizePlanRow(row) {
   if (!row) return row;
 
-  let steps = [];
-
-  if (typeof row.steps === "string") {
-    try {
-      steps = JSON.parse(row.steps);
-    } catch {
-      steps = [];
-    }
-  } else if (Array.isArray(row.steps)) {
-    steps = row.steps;
-  }
-
   return {
     ...row,
-    steps,
+    steps: parseJsonArray(row.steps),
+    phases: parseJsonArray(row.phases),
+    estimated_duration: row.estimated_duration ?? null,
   };
 }
 
@@ -94,9 +99,11 @@ export async function createPlan(request, env) {
         status,
         priority,
         target_date,
+        estimated_duration,
+        phases,
         steps
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       RETURNING *
       `,
     )
@@ -107,6 +114,8 @@ export async function createPlan(request, env) {
       data.status,
       data.priority,
       data.target_date,
+      data.estimated_duration,
+      data.phases,
       data.steps,
     )
     .first();

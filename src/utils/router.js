@@ -8,6 +8,12 @@ export function normalizePath(pathname) {
   return trimmed || "/";
 }
 
+export function matchPlanDetailRoute(pathname) {
+  const normalized = normalizePath(pathname);
+  const match = normalized.match(/^\/plans\/([1-9]\d*)$/);
+  return match ? Number(match[1]) : null;
+}
+
 export function navigate(to) {
   const target = normalizePath(to);
   if (window.location.pathname !== target) {

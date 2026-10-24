@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { CATEGORY_OPTIONS } from "../../categories.js";
 import SketchButton from "../ui/SketchButton.jsx";
 
 const STATUS_OPTIONS = [
@@ -21,6 +22,7 @@ const EMPTY_VALUES = {
   status: "not_started",
   priority: "medium",
   target_date: "",
+  estimated_duration: "",
   steps: [],
 };
 
@@ -43,7 +45,9 @@ function PlanForm({
     ...EMPTY_VALUES,
     ...initialValues,
     target_date: initialValues.target_date ?? "",
+    estimated_duration: initialValues.estimated_duration ?? "",
     description: initialValues.description ?? "",
+    category: initialValues.category ?? "general",
   }));
   const [steps, setSteps] = useState(() =>
     Array.isArray(initialValues.steps) ? [...initialValues.steps] : [],
@@ -123,7 +127,6 @@ function PlanForm({
     setFormError(null);
     setFieldErrors({});
 
-    // Filter out any accidentally empty steps
     const validSteps = steps
       .map((step) => ({
         ...step,
@@ -139,6 +142,7 @@ function PlanForm({
         status: form.status,
         priority: form.priority,
         target_date: form.target_date || null,
+        estimated_duration: form.estimated_duration || null,
         steps: validSteps,
       });
 
@@ -217,6 +221,22 @@ function PlanForm({
 
         <div className="form-grid-row">
           <div className="form-field">
+            <label htmlFor={`${idPrefix}-category`}>Category</label>
+            <select
+              id={`${idPrefix}-category`}
+              name="category"
+              value={form.category}
+              onChange={handleChange}
+            >
+              {CATEGORY_OPTIONS.map((category) => (
+                <option key={category.value} value={category.value}>
+                  {category.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="form-field">
             <label htmlFor={`${idPrefix}-status`}>Status</label>
             <select
               id={`${idPrefix}-status`}
@@ -236,7 +256,9 @@ function PlanForm({
               </p>
             )}
           </div>
+        </div>
 
+        <div className="form-grid-row">
           <div className="form-field">
             <label htmlFor={`${idPrefix}-priority`}>Priority</label>
             <select
@@ -257,22 +279,37 @@ function PlanForm({
               </p>
             )}
           </div>
+
+          <div className="form-field">
+            <label htmlFor={`${idPrefix}-target-date`}>Target Date (Optional)</label>
+            <input
+              id={`${idPrefix}-target-date`}
+              name="target_date"
+              type="date"
+              value={form.target_date}
+              onChange={handleChange}
+            />
+            {fieldErrors.target_date && (
+              <p id={`${idPrefix}-target-date-error`} className="field-error">
+                {fieldErrors.target_date}
+              </p>
+            )}
+          </div>
         </div>
 
         <div className="form-field form-field--wide">
-          <label htmlFor={`${idPrefix}-target-date`}>Target Date (Optional)</label>
+          <label htmlFor={`${idPrefix}-estimated-duration`}>
+            Estimated Duration (Optional)
+          </label>
           <input
-            id={`${idPrefix}-target-date`}
-            name="target_date"
-            type="date"
-            value={form.target_date}
+            id={`${idPrefix}-estimated-duration`}
+            name="estimated_duration"
+            type="text"
+            value={form.estimated_duration}
             onChange={handleChange}
+            placeholder="e.g. 10–12 days, 3 months, 6 weeks…"
+            maxLength="100"
           />
-          {fieldErrors.target_date && (
-            <p id={`${idPrefix}-target-date-error`} className="field-error">
-              {fieldErrors.target_date}
-            </p>
-          )}
         </div>
 
         <div className="form-field form-field--wide plan-form__steps-section">

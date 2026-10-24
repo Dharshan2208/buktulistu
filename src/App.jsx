@@ -20,7 +20,7 @@ import PlansPage from "./components/plans/PlansPage";
 import Modal from "./components/ui/Modal";
 import SketchButton from "./components/ui/SketchButton";
 import SketchToast from "./components/ui/SketchToast";
-import { navigate, useCurrentRoute } from "./utils/router";
+import { matchPlanDetailRoute, navigate, useCurrentRoute } from "./utils/router";
 
 let nextTemporaryId = -1;
 
@@ -394,7 +394,9 @@ function App() {
     return <AccessGate notice={session.notice} onLogin={handleLogin} />;
   }
 
+  const planDetailId = matchPlanDetailRoute(currentRoute);
   const isPlansPage = currentRoute === "/plans";
+  const isPlansRoute = isPlansPage || Boolean(planDetailId);
 
   return (
     <div className="app-shell">
@@ -444,7 +446,7 @@ function App() {
               className="header-add"
               variant="yellow"
               onClick={() => {
-                if (isPlansPage) {
+                if (isPlansRoute) {
                   setIsCreatePlanOpen(true);
                 } else {
                   setIsCreateOpen(true);
@@ -452,7 +454,7 @@ function App() {
               }}
             >
               <span aria-hidden="true">＋</span>{" "}
-              {isPlansPage ? "Add plan" : "Add item"}
+              {isPlansRoute ? "Add plan" : "Add item"}
             </SketchButton>
           )}
         </div>
@@ -482,10 +484,10 @@ function App() {
             <button
               type="button"
               className="ghost icon mobile-icon-btn"
-              aria-label={isPlansPage ? "Add a plan" : "Add a bucket-list item"}
-              title={isPlansPage ? "Add a plan" : "Add a bucket-list item"}
+              aria-label={isPlansRoute ? "Add a plan" : "Add a bucket-list item"}
+              title={isPlansRoute ? "Add a plan" : "Add a bucket-list item"}
               onClick={() => {
-                if (isPlansPage) {
+                if (isPlansRoute) {
                   setIsCreatePlanOpen(true);
                 } else {
                   setIsCreateOpen(true);
@@ -508,13 +510,14 @@ function App() {
       </header>
 
       <main id="top" className="app-main">
-        {isPlansPage ? (
+        {isPlansRoute ? (
           <PlansPage
             isOwner={isOwner}
             onToast={setToast}
             onSessionExpired={handleSessionExpired}
             isCreateOpen={isCreatePlanOpen}
             setIsCreateOpen={setIsCreatePlanOpen}
+            planDetailId={planDetailId}
           />
         ) : (
           <>

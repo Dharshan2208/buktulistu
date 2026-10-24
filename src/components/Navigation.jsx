@@ -2,7 +2,8 @@ import { navigate } from "../utils/router.js";
 
 function Navigation({ currentRoute, className = "" }) {
   const isBucketActive = currentRoute === "/";
-  const isPlansActive = currentRoute === "/plans";
+  const isPlansActive =
+    currentRoute === "/plans" || currentRoute.startsWith("/plans/");
 
   function handleNav(event, path) {
     if (
