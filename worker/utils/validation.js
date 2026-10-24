@@ -381,7 +381,12 @@ function validateSteps(value, fields) {
       return "[]";
     }
 
-    const stepText = typeof item.text === "string" ? item.text.trim() : "";
+    const stepText =
+      typeof item.text === "string"
+        ? item.text.trim()
+        : typeof item.title === "string"
+          ? item.title.trim()
+          : "";
 
     if (!stepText) {
       fields.steps = `Step at index ${index} must have non-empty text`;
@@ -393,9 +398,14 @@ function validateSteps(value, fields) {
       return "[]";
     }
 
+    const stepDesc =
+      typeof item.description === "string" ? item.description.trim() : null;
+
     sanitized.push({
       id: String(item.id ?? index + 1),
       text: stepText,
+      title: stepText,
+      description: stepDesc,
       completed: Boolean(item.completed),
     });
   }

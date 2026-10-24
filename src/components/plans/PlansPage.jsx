@@ -162,7 +162,34 @@ function PlansPage({
     }
   }
 
-  async function handleUpdate(id, updates) {
+  function handleOptimisticUpdate(id, updates) {
+    setPlans((current) =>
+      current.map((plan) =>
+        plan.id === id
+          ? {
+              ...plan,
+              ...updates,
+              updated_at: new Date().toISOString(),
+            }
+          : plan,
+      ),
+    );
+  }
+
+  function handleServerConfirmed(id, confirmedPlan) {
+    const normalized = normalizePlan(confirmedPlan);
+    setPlans((current) =>
+      current.map((plan) => (plan.id === id ? normalized : plan)),
+    );
+  }
+
+  function handleRollback() {
+    getPlans()
+      .then((data) => setPlans(data.map(normalizePlan)))
+      .catch((err) => console.error("Rollback refetch failed:", err));
+  }
+
+  async function handleUpdate(id, updates, options = {}) {
     const previousPlan = plans.find((plan) => plan.id === id);
 
     if (!previousPlan) {
@@ -186,7 +213,11 @@ function PlansPage({
         current.map((plan) => (plan.id === id ? updatedPlan : plan)),
       );
 
-      onToast("Plan updated");
+      if (!options.silent) {
+        onToast(options.toastMessage || "Plan updated");
+      }
+
+      return updatedPlan;
     } catch (error) {
       setPlans((current) =>
         current.map((plan) => (plan.id === id ? previousPlan : plan)),
@@ -282,11 +313,15 @@ function PlansPage({
     return (
       <>
         <PlanDetailView
+          key={selectedPlan.id}
           plan={selectedPlan}
           isOwner={isOwner}
           onUpdate={handleUpdate}
           onDelete={handleDelete}
           onToast={onToast}
+          onOptimisticUpdate={handleOptimisticUpdate}
+          onServerConfirmed={handleServerConfirmed}
+          onRollback={handleRollback}
         />
 
         {isOwner && (

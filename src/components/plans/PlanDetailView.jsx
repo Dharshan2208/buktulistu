@@ -1,4 +1,5 @@
-import { useId, useMemo, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
+import { updatePlan } from "../../api/plansApi.js";
 import { formatCategory } from "../../categories.js";
 import { navigate } from "../../utils/router.js";
 import Modal from "../ui/Modal.jsx";
@@ -31,7 +32,7 @@ function formatTargetDate(dateString) {
 }
 
 function normalizeTasks(plan) {
-  if (Array.isArray(plan.steps) && plan.steps.length > 0) {
+  if (Array.isArray(plan?.steps) && plan.steps.length > 0) {
     return plan.steps.map((step, idx) => ({
       id: step.id || `task-${idx + 1}`,
       title: step.title || step.text || `Task ${idx + 1}`,
@@ -40,8 +41,8 @@ function normalizeTasks(plan) {
     }));
   }
 
-  // Fallback: if plan only had legacy phases, flatten tasks
-  if (Array.isArray(plan.phases) && plan.phases.length > 0) {
+  // Fallback: if plan had legacy phases, flatten tasks
+  if (Array.isArray(plan?.phases) && plan.phases.length > 0) {
     const flattened = [];
     for (const phase of plan.phases) {
       if (Array.isArray(phase.tasks)) {
@@ -62,17 +63,42 @@ function normalizeTasks(plan) {
 }
 
 function createId(prefix) {
-  return `${prefix}-${Date.now()}`;
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 }
 
-function PlanDetailView({ plan, isOwner, onUpdate, onDelete, onToast }) {
+function PlanDetailView({
+  plan,
+  isOwner,
+  onUpdate,
+  onDelete,
+  onToast,
+  onOptimisticUpdate,
+  onServerConfirmed,
+  onRollback,
+}) {
   const addTaskInputId = useId();
   const [isEditing, setIsEditing] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
-  const [isBusy, setIsBusy] = useState(false);
+  const [isDeleteBusy, setIsDeleteBusy] = useState(false);
   const [actionError, setActionError] = useState(null);
 
-  // Task adding state
+  // Local task state updated immediately for instant UI response
+  const [tasks, setTasks] = useState(() => normalizeTasks(plan));
+
+  // Refs for debouncing, in-flight background persistence, and rollback
+  const tasksRef = useRef(tasks);
+  const lastConfirmedTasksRef = useRef(tasks);
+  const debounceTimerRef = useRef(null);
+  const retryTimerRef = useRef(null);
+  const isPersistingRef = useRef(false);
+  const pendingSyncRef = useRef(false);
+
+  // Sync tasksRef whenever tasks state changes
+  useEffect(() => {
+    tasksRef.current = tasks;
+  }, [tasks]);
+
+  // Task adding inline form state
   const [isAddingTask, setIsAddingTask] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [newTaskDesc, setNewTaskDesc] = useState("");
@@ -81,18 +107,182 @@ function PlanDetailView({ plan, isOwner, onUpdate, onDelete, onToast }) {
   const [draggedIndex, setDraggedIndex] = useState(null);
   const [dragOverIndex, setDragOverIndex] = useState(null);
 
-  const tasks = useMemo(() => normalizeTasks(plan), [plan]);
   const formattedTargetDate = formatTargetDate(plan.target_date);
 
+  // Flush any pending debounced changes when unmounting or navigating away
+  useEffect(() => {
+    const planId = plan.id;
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+        debounceTimerRef.current = null;
+
+        const currentTasks = tasksRef.current;
+        const stepsPayload = currentTasks.map((t) => ({
+          id: t.id,
+          text: t.title,
+          title: t.title,
+          description: t.description || null,
+          completed: t.completed,
+        }));
+
+        updatePlan(planId, {
+          steps: stepsPayload,
+          phases: [],
+        }).catch((err) => {
+          console.error("Flush on unmount failed:", err);
+        });
+      }
+
+      if (retryTimerRef.current) {
+        clearTimeout(retryTimerRef.current);
+        retryTimerRef.current = null;
+      }
+    };
+  }, [plan.id]);
+
+  function calculateStatus(taskList) {
+    const total = taskList.length;
+    const completed = taskList.filter((t) => t.completed).length;
+
+    if (total > 0 && completed === total) {
+      return "completed";
+    }
+    if (completed > 0 && plan.status === "not_started") {
+      return "in_progress";
+    }
+    if (completed < total && plan.status === "completed") {
+      return "in_progress";
+    }
+    return plan.status;
+  }
+
+  // Central task updater with immediate UI change + debounced background D1 persistence
+  function applyTaskChanges(nextTasks, { immediate = false, toastMessage = null } = {}) {
+    // 1. Immediately update React state for 0ms UI latency
+    setTasks(nextTasks);
+    tasksRef.current = nextTasks;
+    setActionError(null);
+
+    if (toastMessage) {
+      onToast(toastMessage);
+    }
+
+    const nextStatus = calculateStatus(nextTasks);
+
+    const stepsPayload = nextTasks.map((t) => ({
+      id: t.id,
+      text: t.title,
+      title: t.title,
+      description: t.description || null,
+      completed: t.completed,
+    }));
+
+    // 2. Immediately update parent plan state without full remount
+    onOptimisticUpdate?.(plan.id, {
+      steps: stepsPayload,
+      phases: [],
+      status: nextStatus,
+    });
+
+    // 3. Background persistence: debounced for rapid actions, immediate for additions/deletions
+    if (immediate) {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+        debounceTimerRef.current = null;
+      }
+      triggerBackgroundPersistence(stepsPayload, nextStatus);
+    } else {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+      debounceTimerRef.current = setTimeout(() => {
+        debounceTimerRef.current = null;
+        triggerBackgroundPersistence(stepsPayload, nextStatus);
+      }, 350);
+    }
+  }
+
+  // Asynchronous background sync with retry & rollback
+  async function triggerBackgroundPersistence(stepsPayload, nextStatus, retryCount = 0) {
+    // If a network request is already in-flight, queue a sync for when it finishes
+    if (isPersistingRef.current) {
+      pendingSyncRef.current = true;
+      return;
+    }
+
+    isPersistingRef.current = true;
+    pendingSyncRef.current = false;
+
+    try {
+      const updatedPlan = await updatePlan(plan.id, {
+        steps: stepsPayload,
+        phases: [],
+        status: nextStatus,
+      });
+
+      // Update confirmed state on success
+      lastConfirmedTasksRef.current = normalizeTasks(updatedPlan);
+      onServerConfirmed?.(plan.id, updatedPlan);
+    } catch (error) {
+      console.error("Background D1 persistence error:", error);
+
+      // Auto-retry once after 1 second for transient network issues
+      if (retryCount < 1) {
+        isPersistingRef.current = false;
+        retryTimerRef.current = setTimeout(() => {
+          retryTimerRef.current = null;
+          triggerBackgroundPersistence(stepsPayload, nextStatus, retryCount + 1);
+        }, 1000);
+        return;
+      }
+
+      // Unrecoverable failure: Roll back local and parent state to last confirmed
+      setTasks(lastConfirmedTasksRef.current);
+      tasksRef.current = lastConfirmedTasksRef.current;
+      onRollback?.(plan.id);
+
+      onToast("Couldn't save changes to server. Please check your connection.");
+      setActionError("Unable to save changes to the server. Your tasks have been reverted.");
+    } finally {
+      isPersistingRef.current = false;
+
+      // If changes occurred while the request was in-flight, send the freshest state now
+      if (pendingSyncRef.current) {
+        pendingSyncRef.current = false;
+        const freshestTasks = tasksRef.current;
+        const freshestPayload = freshestTasks.map((t) => ({
+          id: t.id,
+          text: t.title,
+          title: t.title,
+          description: t.description || null,
+          completed: t.completed,
+        }));
+        const freshestStatus = calculateStatus(freshestTasks);
+        triggerBackgroundPersistence(freshestPayload, freshestStatus);
+      }
+    }
+  }
+
+  function handleToggleTask(taskId) {
+    if (!isOwner) return;
+
+    const nextTasks = tasks.map((task) =>
+      task.id === taskId ? { ...task, completed: !task.completed } : task,
+    );
+
+    applyTaskChanges(nextTasks, { immediate: false });
+  }
+
   function handleDragStart(event, index) {
-    if (!isOwner || isBusy) return;
+    if (!isOwner) return;
     setDraggedIndex(index);
     event.dataTransfer.effectAllowed = "move";
     event.dataTransfer.setData("text/plain", String(index));
   }
 
   function handleDragOver(event, index) {
-    if (!isOwner || isBusy) return;
+    if (!isOwner) return;
     event.preventDefault();
     event.dataTransfer.dropEffect = "move";
     if (dragOverIndex !== index) {
@@ -107,7 +297,7 @@ function PlanDetailView({ plan, isOwner, onUpdate, onDelete, onToast }) {
 
   function handleDrop(event, targetIndex) {
     event.preventDefault();
-    if (!isOwner || isBusy) return;
+    if (!isOwner) return;
     if (draggedIndex === null || draggedIndex === targetIndex) {
       setDraggedIndex(null);
       setDragOverIndex(null);
@@ -121,59 +311,11 @@ function PlanDetailView({ plan, isOwner, onUpdate, onDelete, onToast }) {
     setDraggedIndex(null);
     setDragOverIndex(null);
 
-    persistTasks(reordered);
-    onToast("Tasks reordered");
+    // Update order immediately and debounce background persistence
+    applyTaskChanges(reordered, { immediate: false, toastMessage: "Tasks reordered" });
   }
 
-  async function persistTasks(nextTasks) {
-    setIsBusy(true);
-    setActionError(null);
-
-    const totalTasks = nextTasks.length;
-    const completedTasks = nextTasks.filter((t) => t.completed).length;
-
-    let nextStatus = plan.status;
-    if (totalTasks > 0 && completedTasks === totalTasks) {
-      nextStatus = "completed";
-    } else if (completedTasks > 0 && plan.status === "not_started") {
-      nextStatus = "in_progress";
-    } else if (completedTasks < totalTasks && plan.status === "completed") {
-      nextStatus = "in_progress";
-    }
-
-    const stepsPayload = nextTasks.map((t) => ({
-      id: t.id,
-      text: t.title,
-      title: t.title,
-      description: t.description || null,
-      completed: t.completed,
-    }));
-
-    try {
-      await onUpdate(plan.id, {
-        steps: stepsPayload,
-        phases: [],
-        status: nextStatus,
-      });
-    } catch (error) {
-      console.error("Unable to update tasks", error);
-      setActionError("Failed to save changes. Please try again.");
-    } finally {
-      setIsBusy(false);
-    }
-  }
-
-  async function handleToggleTask(taskId) {
-    if (!isOwner || isBusy) return;
-
-    const nextTasks = tasks.map((task) =>
-      task.id === taskId ? { ...task, completed: !task.completed } : task,
-    );
-
-    await persistTasks(nextTasks);
-  }
-
-  async function handleAddTaskSubmit(event) {
+  function handleAddTaskSubmit(event) {
     event.preventDefault();
     const title = newTaskTitle.trim();
     if (!title) return;
@@ -190,26 +332,48 @@ function PlanDetailView({ plan, isOwner, onUpdate, onDelete, onToast }) {
     setNewTaskDesc("");
     setIsAddingTask(false);
 
-    await persistTasks(nextTasks);
-    onToast("Task added");
+    // Immediate addition & immediate background sync
+    applyTaskChanges(nextTasks, { immediate: true, toastMessage: "Task added" });
   }
 
-  async function handleDeleteTask(taskId) {
-    if (!isOwner || isBusy) return;
+  function handleDeleteTask(taskId) {
+    if (!isOwner) return;
 
     const nextTasks = tasks.filter((task) => task.id !== taskId);
-    await persistTasks(nextTasks);
-    onToast("Task removed");
+    applyTaskChanges(nextTasks, { immediate: true, toastMessage: "Task removed" });
   }
 
   async function handleEdit(values) {
-    await onUpdate(plan.id, values);
+    // Flush any pending debounced tasks
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+      debounceTimerRef.current = null;
+    }
+
+    const currentTasks = tasksRef.current;
+    const stepsPayload = currentTasks.map((t) => ({
+      id: t.id,
+      text: t.title,
+      title: t.title,
+      description: t.description || null,
+      completed: t.completed,
+    }));
+
+    await onUpdate(
+      plan.id,
+      {
+        ...values,
+        steps: stepsPayload,
+        phases: [],
+      },
+      { toastMessage: "Plan details updated" },
+    );
+
     setIsEditing(false);
-    onToast("Plan details updated");
   }
 
   async function handleDelete() {
-    setIsBusy(true);
+    setIsDeleteBusy(true);
     setActionError(null);
 
     try {
@@ -219,7 +383,7 @@ function PlanDetailView({ plan, isOwner, onUpdate, onDelete, onToast }) {
       console.error("Unable to delete plan", error);
       setActionError("Couldn't delete this plan. Please try again.");
       setIsDeleteOpen(false);
-      setIsBusy(false);
+      setIsDeleteBusy(false);
     }
   }
 
@@ -242,7 +406,6 @@ function PlanDetailView({ plan, isOwner, onUpdate, onDelete, onToast }) {
               type="button"
               className="ghost small"
               onClick={() => setIsEditing(true)}
-              disabled={isBusy}
             >
               Edit plan
             </button>
@@ -251,7 +414,6 @@ function PlanDetailView({ plan, isOwner, onUpdate, onDelete, onToast }) {
               className="ghost small"
               data-variant="danger"
               onClick={() => setIsDeleteOpen(true)}
-              disabled={isBusy}
             >
               Delete
             </button>
@@ -297,9 +459,7 @@ function PlanDetailView({ plan, isOwner, onUpdate, onDelete, onToast }) {
 
           {plan.estimated_duration && (
             <div className="plan-detail__meta-item">
-              <span className="plan-detail__meta-label">
-                Estimated Duration
-              </span>
+              <span className="plan-detail__meta-label">Estimated Duration</span>
               <span className="plan-detail__meta-val">
                 ⏱ {plan.estimated_duration}
               </span>
@@ -309,9 +469,7 @@ function PlanDetailView({ plan, isOwner, onUpdate, onDelete, onToast }) {
 
         {plan.description && (
           <div className="plan-detail__overview">
-            <h2 className="plan-detail__section-title">
-              Overview &amp; Objective
-            </h2>
+            <h2 className="plan-detail__section-title">Overview &amp; Objective</h2>
             <p className="plan-detail__overview-text">{plan.description}</p>
           </div>
         )}
@@ -324,10 +482,7 @@ function PlanDetailView({ plan, isOwner, onUpdate, onDelete, onToast }) {
       )}
 
       {/* Direct Tasks Section (No Phases) */}
-      <section
-        className="plan-detail__tasks"
-        aria-labelledby="tasks-section-title"
-      >
+      <section className="plan-detail__tasks" aria-labelledby="tasks-section-title">
         <div className="section-heading">
           <div>
             <h2 id="tasks-section-title">Tasks &amp; Action Items</h2>
@@ -372,7 +527,7 @@ function PlanDetailView({ plan, isOwner, onUpdate, onDelete, onToast }) {
                   return (
                     <li
                       key={task.id}
-                      draggable={isOwner && !isBusy}
+                      draggable={isOwner}
                       onDragStart={(e) => handleDragStart(e, index)}
                       onDragOver={(e) => handleDragOver(e, index)}
                       onDragEnd={handleDragEnd}
@@ -416,7 +571,6 @@ function PlanDetailView({ plan, isOwner, onUpdate, onDelete, onToast }) {
                                 : `Mark "${task.title}" as complete`
                             }
                             aria-pressed={task.completed}
-                            disabled={isBusy}
                             onClick={() => handleToggleTask(task.id)}
                           >
                             <span aria-hidden="true">
@@ -447,7 +601,6 @@ function PlanDetailView({ plan, isOwner, onUpdate, onDelete, onToast }) {
                                 type="button"
                                 className="ghost small plan-task-item__delete-btn"
                                 aria-label={`Delete "${task.title}"`}
-                                disabled={isBusy}
                                 onClick={() => handleDeleteTask(task.id)}
                                 title="Delete task"
                               >
@@ -562,14 +715,14 @@ function PlanDetailView({ plan, isOwner, onUpdate, onDelete, onToast }) {
             open={isDeleteOpen}
             title={`Delete “${plan.title}”?`}
             description="This plan and all its tasks will be permanently removed."
-            onClose={() => !isBusy && setIsDeleteOpen(false)}
+            onClose={() => !isDeleteBusy && setIsDeleteOpen(false)}
             className="confirm-modal"
           >
             <div className="confirm-actions">
               <button
                 type="button"
                 className="ghost"
-                disabled={isBusy}
+                disabled={isDeleteBusy}
                 onClick={() => setIsDeleteOpen(false)}
               >
                 Keep plan
@@ -577,10 +730,10 @@ function PlanDetailView({ plan, isOwner, onUpdate, onDelete, onToast }) {
               <SketchButton
                 type="button"
                 variant="red"
-                disabled={isBusy}
+                disabled={isDeleteBusy}
                 onClick={handleDelete}
               >
-                {isBusy ? "Deleting…" : "Delete plan"}
+                {isDeleteBusy ? "Deleting…" : "Delete plan"}
               </SketchButton>
             </div>
           </Modal>
