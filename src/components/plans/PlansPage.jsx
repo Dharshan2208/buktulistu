@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { ApiError } from "../../api/bucketApi.js";
 import {
   createPlan,
@@ -6,24 +6,15 @@ import {
   getPlans,
   updatePlan,
 } from "../../api/plansApi.js";
-import { CATEGORY_OPTIONS } from "../../categories.js";
 import { navigate } from "../../utils/router.js";
 import Modal from "../ui/Modal.jsx";
 import SketchButton from "../ui/SketchButton.jsx";
 import SketchCard from "../ui/SketchCard.jsx";
 import PlanDetailView from "./PlanDetailView.jsx";
-import PlanFilters from "./PlanFilters.jsx";
 import PlanForm from "./PlanForm.jsx";
 import PlanList from "./PlanList.jsx";
-import { getPlanTaskStats } from "../../utils/planStats.js";
 
 let nextTemporaryId = -1;
-
-const PRIORITY_WEIGHTS = {
-  high: 3,
-  medium: 2,
-  low: 1,
-};
 
 function normalizePlan(plan) {
   let steps = [];
@@ -71,11 +62,6 @@ function PlansPage({
   const [plans, setPlans] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState(null);
-
-  const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [categoryFilter, setCategoryFilter] = useState("all");
-  const [sortBy, setSortBy] = useState("newest");
 
   useEffect(() => {
     let ignore = false;
@@ -131,7 +117,9 @@ function PlansPage({
     }
 
     if (error.status === 403) {
-      onToast("This session is read-only. Sign in as the owner to make changes.");
+      onToast(
+        "This session is read-only. Sign in as the owner to make changes.",
+      );
     }
   }
 
@@ -235,103 +223,6 @@ function PlansPage({
     }
   }
 
-  const categories = useMemo(() => {
-    const uniqueCategories = new Set([
-      ...CATEGORY_OPTIONS.map((cat) => cat.value),
-      ...plans.map((p) => p.category),
-    ]);
-
-    return [...uniqueCategories].sort((first, second) =>
-      first.localeCompare(second),
-    );
-  }, [plans]);
-
-  const statusCounts = useMemo(() => {
-    return {
-      all: plans.length,
-      in_progress: plans.filter((p) => p.status === "in_progress").length,
-      not_started: plans.filter((p) => p.status === "not_started").length,
-      completed: plans.filter((p) => p.status === "completed").length,
-    };
-  }, [plans]);
-
-  const visiblePlans = useMemo(() => {
-    const normalizedSearch = searchTerm.trim().toLowerCase();
-
-    const filtered = plans.filter((plan) => {
-      const searchableText = [
-        plan.title,
-        plan.description ?? "",
-        plan.category,
-        plan.estimated_duration ?? "",
-      ]
-        .join(" ")
-        .toLowerCase();
-
-      const matchesSearch =
-        normalizedSearch === "" || searchableText.includes(normalizedSearch);
-
-      const matchesStatus =
-        statusFilter === "all" || plan.status === statusFilter;
-
-      const matchesCategory =
-        categoryFilter === "all" || plan.category === categoryFilter;
-
-      return matchesSearch && matchesStatus && matchesCategory;
-    });
-
-    filtered.sort((first, second) => {
-      if (sortBy === "deadline") {
-        if (first.target_date && second.target_date) {
-          return first.target_date.localeCompare(second.target_date);
-        }
-        if (first.target_date && !second.target_date) return -1;
-        if (!first.target_date && second.target_date) return 1;
-        return (second.created_at || "").localeCompare(first.created_at || "");
-      }
-
-      if (sortBy === "priority") {
-        const weightFirst = PRIORITY_WEIGHTS[first.priority] ?? 2;
-        const weightSecond = PRIORITY_WEIGHTS[second.priority] ?? 2;
-        if (weightFirst !== weightSecond) {
-          return weightSecond - weightFirst;
-        }
-        return (second.created_at || "").localeCompare(first.created_at || "");
-      }
-
-      if (sortBy === "progress") {
-        const percentFirst = getPlanTaskStats(first).percent;
-        const percentSecond = getPlanTaskStats(second).percent;
-        if (percentFirst !== percentSecond) {
-          return percentSecond - percentFirst;
-        }
-        return (second.created_at || "").localeCompare(first.created_at || "");
-      }
-
-      if (sortBy === "title") {
-        return first.title.localeCompare(second.title, undefined, {
-          sensitivity: "base",
-        });
-      }
-
-      return (second.created_at || "").localeCompare(first.created_at || "");
-    });
-
-    return filtered;
-  }, [plans, searchTerm, statusFilter, categoryFilter, sortBy]);
-
-  function clearFilters() {
-    setSearchTerm("");
-    setStatusFilter("all");
-    setCategoryFilter("all");
-    setSortBy("newest");
-  }
-
-  const emptyMessage =
-    plans.length === 0
-      ? "Document an upcoming project, trip, or personal goal."
-      : "Try a different search or clear your filters.";
-
   // If viewing a single plan's detail view:
   if (planDetailId) {
     if (isLoading) {
@@ -419,7 +310,7 @@ function PlansPage({
     );
   }
 
-  // Dashboard / List view
+  // Dashboard / List view without filters
   return (
     <>
       <section className="intro" aria-labelledby="plans-heading">
@@ -433,35 +324,17 @@ function PlansPage({
       >
         <div className="section-heading">
           <div>
-            <h2 id="plans-list-heading">Actionable Roadmaps</h2>
+            <h2 id="plans-list-heading">Plans</h2>
           </div>
           <span className="badge outline">
             {isOwner ? "Owner · editing" : "Viewer · read only"}
           </span>
         </div>
 
-        <PlanFilters
-          searchTerm={searchTerm}
-          onSearchChange={setSearchTerm}
-          statusFilter={statusFilter}
-          onStatusChange={setStatusFilter}
-          categoryFilter={categoryFilter}
-          onCategoryChange={setCategoryFilter}
-          sortBy={sortBy}
-          onSortChange={setSortBy}
-          categories={categories}
-          statusCounts={statusCounts}
-          visibleCount={visiblePlans.length}
-          totalCount={plans.length}
-          onClear={clearFilters}
-        />
-
         <PlanList
-          plans={visiblePlans}
+          plans={plans}
           isLoading={isLoading}
           error={loadError}
-          emptyMessage={emptyMessage}
-          hasPlans={plans.length > 0}
           isOwner={isOwner}
           onAdd={() => setIsCreateOpen(true)}
           onUpdate={handleUpdate}

@@ -192,7 +192,7 @@ function PlanCard({ plan, isOwner, onUpdate, onDelete }) {
 
           <div className="plan-card__view-action">
             <span className="plan-card__view-cta">
-              View roadmap <span aria-hidden="true">→</span>
+              View plan <span aria-hidden="true">→</span>
             </span>
           </div>
         </div>

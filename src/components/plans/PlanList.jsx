@@ -20,8 +20,6 @@ function PlanList({
   plans,
   isLoading,
   error,
-  emptyMessage,
-  hasPlans,
   isOwner,
   onAdd,
   onUpdate,
@@ -44,29 +42,20 @@ function PlanList({
   }
 
   if (plans.length === 0) {
-    const isFilteredEmpty = hasPlans;
-
     return (
       <SketchCard variant="paper" dashed className="state-card">
         <span className="state-card__mark" aria-hidden="true">
-          {isFilteredEmpty ? "⌕" : isOwner ? "+" : "○"}
+          {isOwner ? "+" : "○"}
         </span>
         <h3>
-          {isFilteredEmpty
-            ? "No matching roadmaps"
-            : isOwner
-              ? "Your roadmaps are ready"
-              : "Nothing to view yet"}
+          {isOwner ? "Your plans are ready" : "Nothing to view yet"}
         </h3>
         <p>
-          {!isFilteredEmpty && !isOwner
-            ? "The owner hasn't added any plans yet. Check back soon."
-            : emptyMessage ||
-              (isOwner
-                ? "Document an upcoming project, trip, or personal goal."
-                : "Nothing to view yet.")}
+          {isOwner
+            ? "Document an upcoming project, trip, or personal goal."
+            : "The owner hasn't added any plans yet. Check back soon."}
         </p>
-        {!isFilteredEmpty && isOwner && (
+        {isOwner && (
           <SketchButton type="button" onClick={onAdd} variant="yellow">
             Create your first plan
           </SketchButton>

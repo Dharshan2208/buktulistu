@@ -30,26 +30,32 @@ function formatTargetDate(dateString) {
   }
 }
 
-function normalizePhases(plan) {
-  if (Array.isArray(plan.phases) && plan.phases.length > 0) {
-    return plan.phases;
+function normalizeTasks(plan) {
+  if (Array.isArray(plan.steps) && plan.steps.length > 0) {
+    return plan.steps.map((step, idx) => ({
+      id: step.id || `task-${idx + 1}`,
+      title: step.title || step.text || `Task ${idx + 1}`,
+      description: step.description || null,
+      completed: Boolean(step.completed),
+    }));
   }
 
-  if (Array.isArray(plan.steps) && plan.steps.length > 0) {
-    return [
-      {
-        id: "phase-1",
-        title: "Milestones & Execution",
-        description: "Core roadmap milestones and action items",
-        target_date: plan.target_date || null,
-        tasks: plan.steps.map((step, idx) => ({
-          id: step.id || String(idx + 1),
-          title: step.text || step.title || `Task ${idx + 1}`,
-          description: null,
-          completed: Boolean(step.completed),
-        })),
-      },
-    ];
+  // Fallback: if plan only had legacy phases, flatten tasks
+  if (Array.isArray(plan.phases) && plan.phases.length > 0) {
+    const flattened = [];
+    for (const phase of plan.phases) {
+      if (Array.isArray(phase.tasks)) {
+        for (const task of phase.tasks) {
+          flattened.push({
+            id: task.id || createId("task"),
+            title: task.title || task.text || "Task",
+            description: task.description || null,
+            completed: Boolean(task.completed),
+          });
+        }
+      }
+    }
+    if (flattened.length > 0) return flattened;
   }
 
   return [];
@@ -66,51 +72,20 @@ function PlanDetailView({ plan, isOwner, onUpdate, onDelete, onToast }) {
   const [isBusy, setIsBusy] = useState(false);
   const [actionError, setActionError] = useState(null);
 
-  // Phase adding state
-  const [isAddingPhase, setIsAddingPhase] = useState(false);
-  const [newPhaseTitle, setNewPhaseTitle] = useState("");
-  const [newPhaseDesc, setNewPhaseDesc] = useState("");
-  const [newPhaseDate, setNewPhaseDate] = useState("");
-
-  // Task adding state per phase
-  const [activePhaseForTask, setActivePhaseForTask] = useState(null);
+  // Task adding state
+  const [isAddingTask, setIsAddingTask] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [newTaskDesc, setNewTaskDesc] = useState("");
 
-  const phases = useMemo(() => normalizePhases(plan), [plan]);
-
+  const tasks = useMemo(() => normalizeTasks(plan), [plan]);
   const formattedTargetDate = formatTargetDate(plan.target_date);
 
-  async function handleToggleTask(phaseId, taskId) {
-    if (!isOwner || isBusy) return;
-
-    const nextPhases = phases.map((phase) => {
-      if (phase.id !== phaseId) return phase;
-
-      const nextTasks = (phase.tasks || []).map((task) =>
-        task.id === taskId ? { ...task, completed: !task.completed } : task,
-      );
-
-      return { ...phase, tasks: nextTasks };
-    });
-
-    await persistPhases(nextPhases);
-  }
-
-  async function persistPhases(nextPhases) {
+  async function persistTasks(nextTasks) {
     setIsBusy(true);
     setActionError(null);
 
-    // Calculate next status
-    let totalTasks = 0;
-    let completedTasks = 0;
-
-    for (const phase of nextPhases) {
-      for (const task of phase.tasks || []) {
-        totalTasks += 1;
-        if (task.completed) completedTasks += 1;
-      }
-    }
+    const totalTasks = nextTasks.length;
+    const completedTasks = nextTasks.filter((t) => t.completed).length;
 
     let nextStatus = plan.status;
     if (totalTasks > 0 && completedTasks === totalTasks) {
@@ -121,59 +96,42 @@ function PlanDetailView({ plan, isOwner, onUpdate, onDelete, onToast }) {
       nextStatus = "in_progress";
     }
 
-    // Keep flat steps in sync for backwards-compatible consumers
-    const flatSteps = [];
-    for (const phase of nextPhases) {
-      for (const task of phase.tasks || []) {
-        flatSteps.push({
-          id: task.id,
-          text: task.title,
-          completed: task.completed,
-        });
-      }
-    }
+    const stepsPayload = nextTasks.map((t) => ({
+      id: t.id,
+      text: t.title,
+      title: t.title,
+      description: t.description || null,
+      completed: t.completed,
+    }));
 
     try {
       await onUpdate(plan.id, {
-        phases: nextPhases,
-        steps: flatSteps,
+        steps: stepsPayload,
+        phases: [],
         status: nextStatus,
       });
     } catch (error) {
-      console.error("Unable to update roadmap", error);
+      console.error("Unable to update tasks", error);
       setActionError("Failed to save changes. Please try again.");
     } finally {
       setIsBusy(false);
     }
   }
 
-  async function handleAddPhaseSubmit(event) {
-    event.preventDefault();
-    const title = newPhaseTitle.trim();
-    if (!title) return;
+  async function handleToggleTask(taskId) {
+    if (!isOwner || isBusy) return;
 
-    const newPhase = {
-      id: createId("phase"),
-      title,
-      description: newPhaseDesc.trim() || null,
-      target_date: newPhaseDate || null,
-      tasks: [],
-    };
+    const nextTasks = tasks.map((task) =>
+      task.id === taskId ? { ...task, completed: !task.completed } : task,
+    );
 
-    const nextPhases = [...phases, newPhase];
-    setNewPhaseTitle("");
-    setNewPhaseDesc("");
-    setNewPhaseDate("");
-    setIsAddingPhase(false);
-
-    await persistPhases(nextPhases);
-    onToast("New phase added");
+    await persistTasks(nextTasks);
   }
 
   async function handleAddTaskSubmit(event) {
     event.preventDefault();
     const title = newTaskTitle.trim();
-    if (!title || !activePhaseForTask) return;
+    if (!title) return;
 
     const newTask = {
       id: createId("task"),
@@ -182,18 +140,21 @@ function PlanDetailView({ plan, isOwner, onUpdate, onDelete, onToast }) {
       completed: false,
     };
 
-    const nextPhases = phases.map((phase) =>
-      phase.id === activePhaseForTask
-        ? { ...phase, tasks: [...(phase.tasks || []), newTask] }
-        : phase,
-    );
-
+    const nextTasks = [...tasks, newTask];
     setNewTaskTitle("");
     setNewTaskDesc("");
-    setActivePhaseForTask(null);
+    setIsAddingTask(false);
 
-    await persistPhases(nextPhases);
+    await persistTasks(nextTasks);
     onToast("Task added");
+  }
+
+  async function handleDeleteTask(taskId) {
+    if (!isOwner || isBusy) return;
+
+    const nextTasks = tasks.filter((task) => task.id !== taskId);
+    await persistTasks(nextTasks);
+    onToast("Task removed");
   }
 
   async function handleEdit(values) {
@@ -268,7 +229,7 @@ function PlanDetailView({ plan, isOwner, onUpdate, onDelete, onToast }) {
           {plan.priority === "high" && (
             <span
               className="badge outline plan-priority--high"
-              title="High Priority Roadmap"
+              title="High Priority"
             >
               High Priority
             </span>
@@ -317,241 +278,172 @@ function PlanDetailView({ plan, isOwner, onUpdate, onDelete, onToast }) {
         </p>
       )}
 
-      {/* Roadmap & Phases Section */}
+      {/* Direct Tasks Section (No Phases) */}
       <section
-        className="plan-detail__roadmap"
-        aria-labelledby="roadmap-section-title"
+        className="plan-detail__tasks"
+        aria-labelledby="tasks-section-title"
       >
         <div className="section-heading">
           <div>
-            <h2 id="roadmap-section-title">Execution Roadmap &amp; Timeline</h2>
+            <h2 id="tasks-section-title">Tasks &amp; Action Items</h2>
           </div>
-          {isOwner && (
+          {isOwner && !isAddingTask && (
             <button
               type="button"
               className="ghost small"
-              onClick={() => setIsAddingPhase(true)}
+              onClick={() => setIsAddingTask(true)}
             >
-              ＋ Add phase
+              ＋ Add task
             </button>
           )}
         </div>
 
-        {phases.length === 0 ? (
+        {tasks.length === 0 && !isAddingTask ? (
           <SketchCard variant="paper" dashed className="state-card">
             <span className="state-card__mark" aria-hidden="true">
               ○
             </span>
-            <h3>No roadmap phases yet</h3>
-            <p>
-              Break down this plan into sequential phases, milestones, and
-              actionable tasks.
-            </p>
+            <h3>No tasks yet</h3>
+            <p>Add action items and milestones to track your progress.</p>
             {isOwner && (
               <SketchButton
                 type="button"
                 variant="yellow"
-                onClick={() => setIsAddingPhase(true)}
+                onClick={() => setIsAddingTask(true)}
               >
-                Create Phase 1
+                Add first task
               </SketchButton>
             )}
           </SketchCard>
         ) : (
-          <div className="plan-timeline">
-            {phases.map((phase, phaseIndex) => {
-              const phaseTasks = Array.isArray(phase.tasks) ? phase.tasks : [];
-              const phaseDone = phaseTasks.filter((t) => t.completed).length;
-              const isPhaseComplete =
-                phaseTasks.length > 0 && phaseDone === phaseTasks.length;
-              const formattedPhaseDate = formatTargetDate(phase.target_date);
-
-              return (
-                <div
-                  key={phase.id || phaseIndex}
-                  className={`plan-timeline__node ${
-                    isPhaseComplete ? "is-phase-complete" : ""
-                  }`}
-                >
-                  {/* Timeline spine dot */}
-                  <div
-                    className="plan-timeline__bullet"
-                    aria-hidden="true"
-                    data-completed={isPhaseComplete}
+          <div className="plan-tasks-container">
+            {tasks.length > 0 && (
+              <ul className="plan-tasks-list" aria-label="Tasks list">
+                {tasks.map((task) => (
+                  <li
+                    key={task.id}
+                    className={`plan-task-item ${
+                      task.completed ? "is-task-completed" : ""
+                    }`}
                   >
-                    {isPhaseComplete ? "✓" : phaseIndex + 1}
-                  </div>
-
-                  <SketchCard
-                    className="plan-phase-card"
-                    contentClassName="plan-phase-card__content"
-                  >
-                    <header className="plan-phase-card__header">
-                      <div className="plan-phase-card__top">
-                        <span className="badge outline">
-                          Phase {phaseIndex + 1}
-                        </span>
-                        {formattedPhaseDate && (
-                          <span className="plan-phase-card__date">
-                            By {formattedPhaseDate}
+                    <div className="plan-task-item__main">
+                      {isOwner ? (
+                        <button
+                          type="button"
+                          className="step-check-btn"
+                          aria-label={
+                            task.completed
+                              ? `Mark "${task.title}" as incomplete`
+                              : `Mark "${task.title}" as complete`
+                          }
+                          aria-pressed={task.completed}
+                          disabled={isBusy}
+                          onClick={() => handleToggleTask(task.id)}
+                        >
+                          <span aria-hidden="true">
+                            {task.completed ? "✓" : ""}
                           </span>
-                        )}
-                        <span className="badge outline plan-phase-card__count">
-                          {phaseDone}/{phaseTasks.length} tasks
+                        </button>
+                      ) : (
+                        <span
+                          className="step-check-indicator"
+                          data-completed={task.completed}
+                          aria-label={
+                            task.completed ? "Completed task" : "Pending task"
+                          }
+                        >
+                          <span aria-hidden="true">
+                            {task.completed ? "✓" : ""}
+                          </span>
                         </span>
-                      </div>
-
-                      <h3 className="plan-phase-card__title">{phase.title}</h3>
-
-                      {phase.description && (
-                        <p className="plan-phase-card__desc">
-                          {phase.description}
-                        </p>
                       )}
-                    </header>
 
-                    {/* Tasks list in this phase */}
-                    <div className="plan-phase-card__tasks">
-                      <ul
-                        className="plan-phase-card__task-list"
-                        aria-label={`Tasks for ${phase.title}`}
-                      >
-                        {phaseTasks.map((task) => (
-                          <li
-                            key={task.id}
-                            className={`plan-task-item ${
-                              task.completed ? "is-task-completed" : ""
-                            }`}
-                          >
-                            <div className="plan-task-item__main">
-                              {isOwner ? (
-                                <button
-                                  type="button"
-                                  className="step-check-btn"
-                                  aria-label={
-                                    task.completed
-                                      ? `Mark "${task.title}" as incomplete`
-                                      : `Mark "${task.title}" as complete`
-                                  }
-                                  aria-pressed={task.completed}
-                                  disabled={isBusy}
-                                  onClick={() =>
-                                    handleToggleTask(phase.id, task.id)
-                                  }
-                                >
-                                  <span aria-hidden="true">
-                                    {task.completed ? "✓" : ""}
-                                  </span>
-                                </button>
-                              ) : (
-                                <span
-                                  className="step-check-indicator"
-                                  data-completed={task.completed}
-                                  aria-label={
-                                    task.completed
-                                      ? "Completed task"
-                                      : "Pending task"
-                                  }
-                                >
-                                  <span aria-hidden="true">
-                                    {task.completed ? "✓" : ""}
-                                  </span>
-                                </span>
-                              )}
-
-                              <div className="plan-task-item__body">
-                                <div className="plan-task-item__header-line">
-                                  <span className="plan-task-item__title">
-                                    {task.title}
-                                  </span>
-                                </div>
-
-                                {task.description && (
-                                  <p className="plan-task-item__desc">
-                                    {task.description}
-                                  </p>
-                                )}
-                              </div>
-                            </div>
-                          </li>
-                        ))}
-                      </ul>
-
-                      {/* Add task button or form for this phase */}
-                      {isOwner && (
-                        <div className="plan-phase-card__add-task-wrap">
-                          {activePhaseForTask === phase.id ? (
-                            <form
-                              className="plan-inline-task-form"
-                              onSubmit={handleAddTaskSubmit}
-                            >
-                              <div className="form-field">
-                                <label htmlFor={addTaskInputId}>
-                                  Task Title
-                                </label>
-                                <input
-                                  id={addTaskInputId}
-                                  type="text"
-                                  value={newTaskTitle}
-                                  onChange={(e) =>
-                                    setNewTaskTitle(e.target.value)
-                                  }
-                                  placeholder="e.g. Confirm lodging reservations…"
-                                  required
-                                  autoFocus
-                                  maxLength="140"
-                                />
-                              </div>
-
-                              <div className="form-field">
-                                <label htmlFor="inline-task-desc">
-                                  Notes (Optional)
-                                </label>
-                                <input
-                                  id="inline-task-desc"
-                                  type="text"
-                                  value={newTaskDesc}
-                                  onChange={(e) =>
-                                    setNewTaskDesc(e.target.value)
-                                  }
-                                  placeholder="Details or checklist tips…"
-                                  maxLength="300"
-                                />
-                              </div>
-
-                              <div className="form-actions">
-                                <button
-                                  type="button"
-                                  className="ghost small"
-                                  onClick={() => setActivePhaseForTask(null)}
-                                >
-                                  Cancel
-                                </button>
-                                <SketchButton
-                                  type="submit"
-                                  variant="yellow"
-                                  disabled={!newTaskTitle.trim()}
-                                >
-                                  Add task
-                                </SketchButton>
-                              </div>
-                            </form>
-                          ) : (
+                      <div className="plan-task-item__body">
+                        <div className="plan-task-item__header-line">
+                          <span className="plan-task-item__title">
+                            {task.title}
+                          </span>
+                          {isOwner && (
                             <button
                               type="button"
-                              className="ghost small plan-phase-card__add-task-btn"
-                              onClick={() => setActivePhaseForTask(phase.id)}
+                              className="ghost small plan-task-item__delete-btn"
+                              aria-label={`Delete "${task.title}"`}
+                              disabled={isBusy}
+                              onClick={() => handleDeleteTask(task.id)}
+                              title="Delete task"
                             >
-                              ＋ Add task to this phase
+                              ✕
                             </button>
                           )}
                         </div>
-                      )}
+
+                        {task.description && (
+                          <p className="plan-task-item__desc">
+                            {task.description}
+                          </p>
+                        )}
+                      </div>
                     </div>
-                  </SketchCard>
-                </div>
-              );
-            })}
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            {isOwner && isAddingTask && (
+              <div className="plan-inline-task-wrap">
+                <form
+                  className="plan-inline-task-form"
+                  onSubmit={handleAddTaskSubmit}
+                >
+                  <div className="form-field">
+                    <label htmlFor={addTaskInputId}>Task Title</label>
+                    <input
+                      id={addTaskInputId}
+                      type="text"
+                      value={newTaskTitle}
+                      onChange={(e) => setNewTaskTitle(e.target.value)}
+                      placeholder="e.g. Book reservations or confirm equipment…"
+                      required
+                      autoFocus
+                      maxLength="140"
+                    />
+                  </div>
+
+                  <div className="form-field">
+                    <label htmlFor="inline-task-desc">Notes (Optional)</label>
+                    <input
+                      id="inline-task-desc"
+                      type="text"
+                      value={newTaskDesc}
+                      onChange={(e) => setNewTaskDesc(e.target.value)}
+                      placeholder="Details or checklist notes…"
+                      maxLength="300"
+                    />
+                  </div>
+
+                  <div className="form-actions">
+                    <button
+                      type="button"
+                      className="ghost small"
+                      onClick={() => {
+                        setIsAddingTask(false);
+                        setNewTaskTitle("");
+                        setNewTaskDesc("");
+                      }}
+                    >
+                      Cancel
+                    </button>
+                    <SketchButton
+                      type="submit"
+                      variant="yellow"
+                      disabled={!newTaskTitle.trim()}
+                    >
+                      Add task
+                    </SketchButton>
+                  </div>
+                </form>
+              </div>
+            )}
           </div>
         )}
       </section>
@@ -559,69 +451,6 @@ function PlanDetailView({ plan, isOwner, onUpdate, onDelete, onToast }) {
       {/* Owner Modals */}
       {isOwner && (
         <>
-          {/* Modal to add a new phase */}
-          <Modal
-            open={isAddingPhase}
-            title="Add a new phase"
-            description="Define a chronological milestone phase in this plan's roadmap."
-            onClose={() => setIsAddingPhase(false)}
-          >
-            <form onSubmit={handleAddPhaseSubmit} className="item-form">
-              <div className="form-field form-field--wide">
-                <label htmlFor="new-phase-title">Phase Title</label>
-                <input
-                  id="new-phase-title"
-                  type="text"
-                  value={newPhaseTitle}
-                  onChange={(e) => setNewPhaseTitle(e.target.value)}
-                  placeholder="e.g. Phase 2: Logistics & Booking"
-                  required
-                  autoFocus
-                  maxLength="120"
-                />
-              </div>
-
-              <div className="form-field form-field--wide">
-                <label htmlFor="new-phase-desc">Description (Optional)</label>
-                <textarea
-                  id="new-phase-desc"
-                  value={newPhaseDesc}
-                  onChange={(e) => setNewPhaseDesc(e.target.value)}
-                  placeholder="What is achieved in this phase?"
-                  rows="2"
-                  maxLength="500"
-                />
-              </div>
-
-              <div className="form-field form-field--wide">
-                <label htmlFor="new-phase-date">Target Date (Optional)</label>
-                <input
-                  id="new-phase-date"
-                  type="date"
-                  value={newPhaseDate}
-                  onChange={(e) => setNewPhaseDate(e.target.value)}
-                />
-              </div>
-
-              <div className="form-actions">
-                <button
-                  type="button"
-                  className="ghost"
-                  onClick={() => setIsAddingPhase(false)}
-                >
-                  Cancel
-                </button>
-                <SketchButton
-                  type="submit"
-                  variant="yellow"
-                  disabled={!newPhaseTitle.trim()}
-                >
-                  Add phase
-                </SketchButton>
-              </div>
-            </form>
-          </Modal>
-
           {/* Modal to edit plan metadata */}
           <Modal
             open={isEditing}
@@ -652,7 +481,7 @@ function PlanDetailView({ plan, isOwner, onUpdate, onDelete, onToast }) {
           <Modal
             open={isDeleteOpen}
             title={`Delete “${plan.title}”?`}
-            description="This plan and all its roadmap phases, tasks, and checklists will be permanently removed."
+            description="This plan and all its tasks will be permanently removed."
             onClose={() => !isBusy && setIsDeleteOpen(false)}
             className="confirm-modal"
           >
