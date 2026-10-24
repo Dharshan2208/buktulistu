@@ -8,12 +8,26 @@ const CREATE_FIELDS = new Set([
 
 const UPDATE_FIELDS = new Set([...CREATE_FIELDS, "completed"]);
 const VALID_PRIORITIES = new Set(["low", "medium", "high"]);
+const VALID_PLAN_STATUSES = new Set([
+  "not_started",
+  "in_progress",
+  "completed",
+  "archived",
+]);
 const CATEGORY_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 export const ITEM_LIMITS = {
   title: 120,
   description: 1_000,
   category: 50,
+};
+
+export const PLAN_LIMITS = {
+  title: 120,
+  description: 2_000,
+  category: 50,
+  stepText: 200,
+  maxSteps: 50,
 };
 
 function findUnexpectedFields(body, allowedFields) {
@@ -169,6 +183,169 @@ export function validateUpdateItem(body) {
 
   const suppliedFields = Object.keys(body).filter((field) =>
     UPDATE_FIELDS.has(field),
+  );
+
+  if (suppliedFields.length === 0) {
+    fields.request = "At least one supported field must be updated";
+  }
+
+  return { data, fields };
+}
+
+const CREATE_PLAN_FIELDS = new Set([
+  "title",
+  "description",
+  "category",
+  "status",
+  "priority",
+  "target_date",
+  "steps",
+]);
+
+const UPDATE_PLAN_FIELDS = new Set(CREATE_PLAN_FIELDS);
+
+function validatePlanStatus(value, fields) {
+  if (typeof value !== "string" || !VALID_PLAN_STATUSES.has(value)) {
+    fields.status =
+      "Status must be not_started, in_progress, completed, or archived";
+    return null;
+  }
+  return value;
+}
+
+function validatePlanDescription(value, fields) {
+  if (value === undefined || value === null || value === "") return null;
+
+  if (typeof value !== "string") {
+    fields.description = "Description must be text or null";
+    return null;
+  }
+
+  const description = value.trim();
+
+  if (description.length > PLAN_LIMITS.description) {
+    fields.description = `Description cannot exceed ${PLAN_LIMITS.description} characters`;
+  }
+
+  return description || null;
+}
+
+function validateSteps(value, fields) {
+  if (value === undefined || value === null || value === "") return "[]";
+
+  let rawList = value;
+
+  if (typeof rawList === "string") {
+    try {
+      rawList = JSON.parse(rawList);
+    } catch {
+      fields.steps = "Steps must be a valid JSON array";
+      return "[]";
+    }
+  }
+
+  if (!Array.isArray(rawList)) {
+    fields.steps = "Steps must be an array";
+    return "[]";
+  }
+
+  if (rawList.length > PLAN_LIMITS.maxSteps) {
+    fields.steps = `A plan cannot have more than ${PLAN_LIMITS.maxSteps} steps`;
+    return "[]";
+  }
+
+  const sanitized = [];
+
+  for (let index = 0; index < rawList.length; index += 1) {
+    const item = rawList[index];
+
+    if (!item || typeof item !== "object") {
+      fields.steps = `Step at index ${index} must be an object`;
+      return "[]";
+    }
+
+    const stepText = typeof item.text === "string" ? item.text.trim() : "";
+
+    if (!stepText) {
+      fields.steps = `Step at index ${index} must have non-empty text`;
+      return "[]";
+    }
+
+    if (stepText.length > PLAN_LIMITS.stepText) {
+      fields.steps = `Step text cannot exceed ${PLAN_LIMITS.stepText} characters`;
+      return "[]";
+    }
+
+    sanitized.push({
+      id: String(item.id ?? index + 1),
+      text: stepText,
+      completed: Boolean(item.completed),
+    });
+  }
+
+  return JSON.stringify(sanitized);
+}
+
+export function validateCreatePlan(body) {
+  const fields = {};
+  const unexpectedFields = findUnexpectedFields(body, CREATE_PLAN_FIELDS);
+
+  if (unexpectedFields.length > 0) {
+    fields.request = `Unsupported fields: ${unexpectedFields.join(", ")}`;
+  }
+
+  const data = {
+    title: validateTitle(body.title, fields),
+    description: validatePlanDescription(body.description, fields),
+    category: validateCategory(body.category ?? "general", fields),
+    status: validatePlanStatus(body.status ?? "not_started", fields),
+    priority: validatePriority(body.priority ?? "medium", fields),
+    target_date: validateTargetDate(body.target_date, fields),
+    steps: validateSteps(body.steps ?? [], fields),
+  };
+
+  return { data, fields };
+}
+
+export function validateUpdatePlan(body) {
+  const fields = {};
+  const data = {};
+  const unexpectedFields = findUnexpectedFields(body, UPDATE_PLAN_FIELDS);
+
+  if (unexpectedFields.length > 0) {
+    fields.request = `Unsupported fields: ${unexpectedFields.join(", ")}`;
+  }
+
+  if (Object.hasOwn(body, "title")) {
+    data.title = validateTitle(body.title, fields);
+  }
+
+  if (Object.hasOwn(body, "description")) {
+    data.description = validatePlanDescription(body.description, fields);
+  }
+
+  if (Object.hasOwn(body, "category")) {
+    data.category = validateCategory(body.category, fields);
+  }
+
+  if (Object.hasOwn(body, "status")) {
+    data.status = validatePlanStatus(body.status, fields);
+  }
+
+  if (Object.hasOwn(body, "priority")) {
+    data.priority = validatePriority(body.priority, fields);
+  }
+
+  if (Object.hasOwn(body, "target_date")) {
+    data.target_date = validateTargetDate(body.target_date, fields);
+  }
+
+  if (Object.hasOwn(body, "steps")) {
+    data.steps = validateSteps(body.steps, fields);
+  }
+
+  const suppliedFields = Object.keys(body).filter((field) =>
+    UPDATE_PLAN_FIELDS.has(field),
   );
 
   if (suppliedFields.length === 0) {

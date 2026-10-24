@@ -15,9 +15,12 @@ import BucketFilters from "./components/BucketFilters";
 import BucketItemForm from "./components/BucketItemForm";
 import BucketList from "./components/BucketList";
 import BucketStats from "./components/BucketStats";
+import Navigation from "./components/Navigation";
+import PlansPage from "./components/plans/PlansPage";
 import Modal from "./components/ui/Modal";
 import SketchButton from "./components/ui/SketchButton";
 import SketchToast from "./components/ui/SketchToast";
+import { navigate, useCurrentRoute } from "./utils/router";
 
 let nextTemporaryId = -1;
 
@@ -29,11 +32,13 @@ function normalizeItem(item) {
 }
 
 function App() {
+  const currentRoute = useCurrentRoute();
   const [session, setSession] = useState({ status: "checking" });
   const [items, setItems] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isCreatePlanOpen, setIsCreatePlanOpen] = useState(false);
   const [toast, setToast] = useState("");
 
   const [searchTerm, setSearchTerm] = useState("");
@@ -164,8 +169,21 @@ function App() {
       setLoadError(null);
       setIsLoading(true);
       setIsCreateOpen(false);
+      setIsCreatePlanOpen(false);
       setSession({ status: "guest", notice: "" });
     }
+  }
+
+  function handleSessionExpired() {
+    setItems([]);
+    setLoadError(null);
+    setIsLoading(true);
+    setIsCreateOpen(false);
+    setIsCreatePlanOpen(false);
+    setSession({
+      status: "guest",
+      notice: "Your session has expired. Sign in again to view this list.",
+    });
   }
 
   function handleMutationError(error) {
@@ -376,15 +394,39 @@ function App() {
     return <AccessGate notice={session.notice} onLogin={handleLogin} />;
   }
 
+  const isPlansPage = currentRoute === "/plans";
+
   return (
     <div className="app-shell">
       <header className="site-header">
-        <a className="brand" href="#top" aria-label="Buktu Listu home">
-          <span className="brand__mark" aria-hidden="true">
-            ✓
-          </span>
-          <span>Buktu Listu</span>
-        </a>
+        <div className="header-brand-group">
+          <a
+            className="brand"
+            href="/"
+            onClick={(event) => {
+              if (
+                event.defaultPrevented ||
+                event.button !== 0 ||
+                event.metaKey ||
+                event.ctrlKey ||
+                event.shiftKey ||
+                event.altKey
+              ) {
+                return;
+              }
+              event.preventDefault();
+              navigate("/");
+            }}
+            aria-label="Buktu Listu home"
+          >
+            <span className="brand__mark" aria-hidden="true">
+              ✓
+            </span>
+            <span>Buktu Listu</span>
+          </a>
+
+          <Navigation currentRoute={currentRoute} />
+        </div>
 
         <div className="header-actions desktop-header-actions">
           <button
@@ -401,9 +443,16 @@ function App() {
             <SketchButton
               className="header-add"
               variant="yellow"
-              onClick={() => setIsCreateOpen(true)}
+              onClick={() => {
+                if (isPlansPage) {
+                  setIsCreatePlanOpen(true);
+                } else {
+                  setIsCreateOpen(true);
+                }
+              }}
             >
-              <span aria-hidden="true">＋</span> Add item
+              <span aria-hidden="true">＋</span>{" "}
+              {isPlansPage ? "Add plan" : "Add item"}
             </SketchButton>
           )}
         </div>
@@ -433,9 +482,15 @@ function App() {
             <button
               type="button"
               className="ghost icon mobile-icon-btn"
-              aria-label="Add a bucket-list item"
-              title="Add a bucket-list item"
-              onClick={() => setIsCreateOpen(true)}
+              aria-label={isPlansPage ? "Add a plan" : "Add a bucket-list item"}
+              title={isPlansPage ? "Add a plan" : "Add a bucket-list item"}
+              onClick={() => {
+                if (isPlansPage) {
+                  setIsCreatePlanOpen(true);
+                } else {
+                  setIsCreateOpen(true);
+                }
+              }}
             >
               <svg
                 viewBox="0 0 24 24"
@@ -453,62 +508,74 @@ function App() {
       </header>
 
       <main id="top" className="app-main">
-        <section className="intro" aria-labelledby="page-heading">
-          <p className="eyebrow">Life In Progress</p>
-          <h1 id="page-heading">Things to do before I die</h1>
-          <p className="intro__lead">
-            Places to visit, milestones to reach, and experiences to try.
-          </p>
-        </section>
-
-        {!isLoading && !loadError && items.length > 0 && (
-          <section id="progress" aria-label="Bucket-list progress">
-            <BucketStats items={items} />
-          </section>
-        )}
-
-        <section
-          id="list"
-          className="list-section"
-          aria-labelledby="list-heading"
-        >
-          <div className="section-heading">
-            <div>
-              <h2 id="list-heading">Dreams worth chasing</h2>
-            </div>
-            <span className="badge outline">
-              {isOwner ? "Owner · editing" : "Viewer · read only"}
-            </span>
-          </div>
-
-          <BucketFilters
-            searchTerm={searchTerm}
-            onSearchChange={setSearchTerm}
-            statusFilter={statusFilter}
-            onStatusChange={setStatusFilter}
-            categoryFilter={categoryFilter}
-            onCategoryChange={setCategoryFilter}
-            sortBy={sortBy}
-            onSortChange={setSortBy}
-            categories={categories}
-            statusCounts={statusCounts}
-            visibleCount={visibleItems.length}
-            totalCount={items.length}
-            onClear={clearFilters}
-          />
-
-          <BucketList
-            items={visibleItems}
-            isLoading={isLoading}
-            error={loadError}
-            emptyMessage={emptyMessage}
-            hasItems={items.length > 0}
+        {isPlansPage ? (
+          <PlansPage
             isOwner={isOwner}
-            onAdd={() => setIsCreateOpen(true)}
-            onUpdate={handleUpdate}
-            onDelete={handleDelete}
+            onToast={setToast}
+            onSessionExpired={handleSessionExpired}
+            isCreateOpen={isCreatePlanOpen}
+            setIsCreateOpen={setIsCreatePlanOpen}
           />
-        </section>
+        ) : (
+          <>
+            <section className="intro" aria-labelledby="page-heading">
+              <p className="eyebrow">Life In Progress</p>
+              <h1 id="page-heading">Things to do before I die</h1>
+              <p className="intro__lead">
+                Places to visit, milestones to reach, and experiences to try.
+              </p>
+            </section>
+
+            {!isLoading && !loadError && items.length > 0 && (
+              <section id="progress" aria-label="Bucket-list progress">
+                <BucketStats items={items} />
+              </section>
+            )}
+
+            <section
+              id="list"
+              className="list-section"
+              aria-labelledby="list-heading"
+            >
+              <div className="section-heading">
+                <div>
+                  <h2 id="list-heading">Dreams worth chasing</h2>
+                </div>
+                <span className="badge outline">
+                  {isOwner ? "Owner · editing" : "Viewer · read only"}
+                </span>
+              </div>
+
+              <BucketFilters
+                searchTerm={searchTerm}
+                onSearchChange={setSearchTerm}
+                statusFilter={statusFilter}
+                onStatusChange={setStatusFilter}
+                categoryFilter={categoryFilter}
+                onCategoryChange={setCategoryFilter}
+                sortBy={sortBy}
+                onSortChange={setSortBy}
+                categories={categories}
+                statusCounts={statusCounts}
+                visibleCount={visibleItems.length}
+                totalCount={items.length}
+                onClear={clearFilters}
+              />
+
+              <BucketList
+                items={visibleItems}
+                isLoading={isLoading}
+                error={loadError}
+                emptyMessage={emptyMessage}
+                hasItems={items.length > 0}
+                isOwner={isOwner}
+                onAdd={() => setIsCreateOpen(true)}
+                onUpdate={handleUpdate}
+                onDelete={handleDelete}
+              />
+            </section>
+          </>
+        )}
       </main>
 
       {isOwner && (

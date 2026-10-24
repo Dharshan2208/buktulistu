@@ -1,5 +1,12 @@
 import { getCurrentUser, login, logout, me } from "./handlers/auth.js";
 import { createItem, deleteItem, getItems, updateItem } from "./handlers/items.js";
+import {
+  createPlan,
+  deletePlan,
+  getPlan,
+  getPlans,
+  updatePlan,
+} from "./handlers/plans.js";
 import { addApiHeaders, errorResponse } from "./utils/http.js";
 
 const WRITE_METHODS = new Set(["POST", "PATCH", "DELETE"]);
@@ -117,12 +124,71 @@ async function routeRequest(request, env, url) {
     return methodNotAllowed(["PATCH", "DELETE"]);
   }
 
+  if (url.pathname === "/api/plans") {
+    if (request.method === "GET") {
+      const user = await getCurrentUser(request, env);
+
+      if (!user) return unauthorized();
+
+      return getPlans(env);
+    }
+
+    if (request.method === "POST") {
+      const denied = await requireOwner(request, env);
+
+      if (denied) return denied;
+
+      return createPlan(request, env);
+    }
+
+    return methodNotAllowed(["GET", "POST"]);
+  }
+
+  const planRoute = url.pathname.match(/^\/api\/plans\/([1-9]\d*)$/);
+
+  if (planRoute) {
+    const planId = Number(planRoute[1]);
+
+    if (request.method === "GET") {
+      const user = await getCurrentUser(request, env);
+
+      if (!user) return unauthorized();
+
+      return getPlan(env, planId);
+    }
+
+    if (request.method === "PATCH") {
+      const denied = await requireOwner(request, env);
+
+      if (denied) return denied;
+
+      return updatePlan(request, env, planId);
+    }
+
+    if (request.method === "DELETE") {
+      const denied = await requireOwner(request, env);
+
+      if (denied) return denied;
+
+      return deletePlan(env, planId);
+    }
+
+    return methodNotAllowed(["GET", "PATCH", "DELETE"]);
+  }
+
   return errorResponse("Endpoint not found", 404, "NOT_FOUND");
 }
 
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+
+    if (!url.pathname.startsWith("/api/")) {
+      if (env.ASSETS) {
+        return env.ASSETS.fetch(request);
+      }
+    }
+
     const requestId = request.headers.get("CF-Ray") ?? crypto.randomUUID();
     let response;
 

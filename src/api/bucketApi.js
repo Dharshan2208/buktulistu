@@ -9,7 +9,7 @@ export class ApiError extends Error {
   }
 }
 
-async function apiRequest(path, options = {}, fallbackMessage) {
+export async function apiRequest(path, options = {}, fallbackMessage) {
   let response;
 
   try {

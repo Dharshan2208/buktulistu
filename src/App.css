@@ -72,6 +72,47 @@ body {
   border-bottom: 1px solid var(--border);
 }
 
+.header-brand-group {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.site-nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  background: var(--muted);
+  padding: 0.2rem;
+  border-radius: var(--radius-medium);
+  border: 1px solid var(--border);
+}
+
+.site-nav__link {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.75rem;
+  font-size: var(--text-7);
+  font-weight: 500;
+  color: var(--muted-foreground);
+  text-decoration: none;
+  border-radius: var(--radius-small);
+  transition:
+    color var(--transition-fast),
+    background var(--transition-fast);
+}
+
+.site-nav__link:hover {
+  color: var(--foreground);
+}
+
+.site-nav__link.is-active {
+  color: var(--foreground);
+  background: var(--card);
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+
 .brand {
   color: var(--foreground);
   font-weight: 600;
@@ -630,6 +671,260 @@ body {
   height: 1.25rem;
 }
 
+/* Plans card and badge styles */
+.plan-badge {
+  font-size: var(--text-8);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.15rem 0.5rem;
+  border-radius: var(--radius-small);
+}
+
+.plan-badge--not_started {
+  background: var(--muted);
+  color: var(--muted-foreground);
+  border: 1px solid var(--border);
+}
+
+.plan-badge--in_progress {
+  background: rgba(234, 179, 8, 0.15);
+  color: #facc15;
+  border: 1px solid rgba(234, 179, 8, 0.3);
+}
+
+.plan-badge--completed {
+  background: rgba(108, 192, 112, 0.15);
+  color: var(--success);
+  border: 1px solid rgba(108, 192, 112, 0.3);
+}
+
+.plan-badge--archived {
+  background: var(--faint);
+  color: var(--faint-foreground);
+  border: 1px solid var(--border);
+}
+
+.plan-priority--high {
+  border-color: rgba(244, 128, 123, 0.4);
+  color: var(--danger);
+}
+
+.plan-card__target-date {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+  font-size: var(--text-8);
+  color: var(--muted-foreground);
+}
+
+.plan-card__target-date svg {
+  width: 0.85rem;
+  height: 0.85rem;
+  flex-shrink: 0;
+}
+
+.form-grid-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+/* Plan stats banner */
+.plan-stats {
+  max-width: 420px;
+}
+
+.plan-stats__meta {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
+}
+
+.plan-stats__pill {
+  font-size: var(--text-8);
+  color: var(--muted-foreground);
+}
+
+.plan-stats__pill strong {
+  color: var(--foreground);
+}
+
+/* Plan Card progress & checklist */
+.plan-card__description {
+  margin-top: 0.35rem;
+  margin-bottom: 0.5rem;
+}
+
+.plan-card__description p {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+  line-height: 1.55;
+}
+
+.plan-card__progress-wrap {
+  margin-top: 0.75rem;
+  margin-bottom: 0.6rem;
+}
+
+.plan-card__progress-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.3rem;
+  font-size: var(--text-8);
+  color: var(--muted-foreground);
+}
+
+.plan-card__progress-wrap progress {
+  width: 100%;
+  height: 6px;
+  margin: 0;
+  border-radius: var(--radius-small);
+}
+
+.plan-card__steps-checklist {
+  list-style: none;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.plan-card__step-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  line-height: 1.4;
+}
+
+.step-check-btn,
+.step-check-indicator {
+  width: 1.25rem;
+  height: 1.25rem;
+  flex: 0 0 1.25rem;
+  aspect-ratio: 1 / 1;
+  display: inline-grid;
+  place-items: center;
+  margin-top: 0.1rem;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-small);
+  background: transparent;
+  color: var(--foreground);
+  font-size: 0.75rem;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    border-color var(--transition-fast),
+    background var(--transition-fast);
+}
+
+.step-check-indicator {
+  cursor: default;
+}
+
+.step-check-btn:hover:not(:disabled) {
+  border-color: var(--ring);
+}
+
+.is-step-completed .step-check-btn,
+.is-step-completed .step-check-indicator,
+.step-check-indicator[data-completed="true"] {
+  background: color-mix(in srgb, var(--success) 20%, transparent);
+  border-color: var(--success);
+  color: var(--success);
+}
+
+.plan-card__step-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  color: var(--foreground);
+  word-break: break-word;
+}
+
+.is-step-completed .plan-card__step-text {
+  color: var(--muted-foreground);
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+}
+
+/* Plan Form checklist editor */
+.plan-form__steps-section {
+  margin-top: 0.5rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
+}
+
+.plan-form__add-step-row {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.plan-form__add-step-row input {
+  flex: 1;
+  min-width: 0;
+}
+
+.plan-form__steps-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.plan-form__step-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0.5rem;
+  background: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-small);
+}
+
+.plan-form__step-row .step-input {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: 0;
+  padding: 0.2rem 0.4rem;
+  font-size: var(--text-7);
+  color: var(--foreground);
+}
+
+.plan-form__step-row .step-input:focus {
+  outline: none;
+  box-shadow: none;
+  background: var(--background);
+  border-radius: var(--radius-small);
+}
+
+.plan-form__step-reorder {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.plan-form__step-reorder button {
+  padding: 0.15rem 0.35rem;
+  min-height: 1.5rem;
+  line-height: 1;
+  font-size: 0.8rem;
+}
+
 @media (max-width: 960px) {
   .bucket-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -647,6 +942,19 @@ body {
 @media (max-width: 600px) {
   .site-header {
     padding: 0.6rem 1rem;
+  }
+
+  .header-brand-group {
+    gap: 0.6rem;
+  }
+
+  .site-nav__link {
+    padding: 0.2rem 0.5rem;
+    font-size: var(--text-8);
+  }
+
+  .form-grid-row {
+    grid-template-columns: 1fr;
   }
 
   .app-main {

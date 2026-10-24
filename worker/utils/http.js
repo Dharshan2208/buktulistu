@@ -1,4 +1,4 @@
-const MAX_JSON_BYTES = 8_192;
+const MAX_JSON_BYTES = 32_768;
 
 export function errorResponse(
   message,
