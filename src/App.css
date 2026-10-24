@@ -731,29 +731,6 @@ body {
   gap: 0.75rem;
 }
 
-/* Plan stats banner */
-.plan-stats {
-  max-width: 420px;
-}
-
-.plan-stats__meta {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  margin-top: 0.75rem;
-  padding-top: 0.75rem;
-  border-top: 1px solid var(--border);
-}
-
-.plan-stats__pill {
-  font-size: var(--text-8);
-  color: var(--muted-foreground);
-}
-
-.plan-stats__pill strong {
-  color: var(--foreground);
-}
-
 /* Plan Card progress & checklist */
 .plan-card__description {
   margin-top: 0.35rem;
